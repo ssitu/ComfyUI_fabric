@@ -78,27 +78,25 @@ def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, ne
         batch_size = input_x.shape[0]
         print("[FABRIC] batch_size:", batch_size)
         # Process reference latents in batches
-        c_null_liked = get_null_cond(null_pos, len(pos_zs))
+        c_null_pos = get_null_cond(null_pos, len(pos_zs))
         c_null_neg = get_null_cond(null_neg, len(neg_zs))
-        c_null = torch.cat([c_null_liked, c_null_neg], dim=0).to(device)
+        c_null = torch.cat([c_null_pos, c_null_neg], dim=0).to(device)
         for a in range(0, len(all_zs), batch_size):
             b = a + batch_size
-            print("[FABRIC] batch shape:", all_zs[a:b].shape)
-            print("[FABRIC] batch ts:", current_ts.shape)
-            for cond in c["c_crossattn"]:
-                print("[FABRIC] batch c_crossattn:", cond.shape)
             batch_latents = all_zs[a:b]
             c_null_batch = c_null[a:b]
             c_null_dict = {
                 'c_crossattn': [c_null_batch],
                 'transformer_options': c['transformer_options']
             }
+            for cond in c["c_crossattn"]:
+                print("[FABRIC] batch c_crossattn:", cond.shape)
             for cond in c_null_dict["c_crossattn"]:
                 print("[FABRIC] batch null c_crossattn:", cond.shape)
             batch_ts = broadcast_tensor(current_ts, len(batch_latents))
             print("[FABRIC] model_func", batch_latents.shape, batch_ts.shape)
             _ = model_func(batch_latents, batch_ts, **c_null_dict)
-        return _
+        return input_x
 
     print("[FABRIC] patching unet")
     model.set_model_unet_function_wrapper(unet_wrapper_hiddens)

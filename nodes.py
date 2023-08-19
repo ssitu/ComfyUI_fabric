@@ -10,6 +10,10 @@ class KSamplerFABRIC:
             "required": {
                 "null_pos": ("CONDITIONING",),
                 "null_neg": ("CONDITIONING",),
+                "pos_weight": ("FLOAT", {"default": 1., "min": 0., "max": 1., "step": 0.01}),
+                "neg_weight": ("FLOAT", {"default": 1., "min": 0., "max": 1., "step": 0.01}),
+                "feedback_start": ("INT", {"default": 1, "min": 1, "max": 10000, "step": 1}),
+                "feedback_end": ("INT", {"default": 20, "min": 1, "max": 10000, "step": 1}),
             },
             "optional": {
                 "pos_latents": ("LATENT",),

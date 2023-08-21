@@ -32,18 +32,25 @@ def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, ne
     device = comfy.model_management.get_torch_device()
     pos_latents = pos_latents.to(device)
     neg_latents = neg_latents.to(device)
+    num_pos = len(pos_latents)
+    num_neg = len(neg_latents)
     all_latents = all_latents.to(device)
-    timesteps = get_timesteps(model_patched, steps, sampler_name, scheduler, denoise, device)
-    print("[FABRIC] timesteps:", timesteps.shape, timesteps)
-    # print("[FABRIC] model object attributes:", dir(model.model))
-    print(f"[FABRIC] {len(pos_latents)} positive latents, {len(neg_latents)} negative latents")
+    print(f"[FABRIC] {num_pos} positive latents, {num_neg} negative latents")
 
     #
     # Precompute hidden states
     #
     all_hiddens = {}
+    pos_hiddens = {}
+    neg_hiddens = {}
+    is_compute_hidden_states = True
 
-    def compute_hidden_states(q, k, v, extra_options):
+    def store_hidden_states(q, k, v, extra_options):
+        nonlocal is_compute_hidden_states, all_hiddens
+        if not is_compute_hidden_states:
+            return q, k, v
+        
+        print("=====================STORE_HIDDEN_STATES=====================")
         idx = extra_options['transformer_index']
         if idx not in all_hiddens:
             all_hiddens[idx] = q
@@ -52,92 +59,20 @@ def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, ne
         print(f"[FABRIC] compute_hidden_states: idx={idx}, all_hiddens[idx].shape={all_hiddens[idx].shape}")
         return q, k, v
 
+    cond_or_uncond = None  # To be set in unet_wrapper
+    is_modified_attn1 = False
 
-    is_hiddens_computed = False  # If unet is called more than once, only store hidden states once
-    def unet_wrapper_hiddens(model_func, params):
-        nonlocal is_hiddens_computed
-        print("UNET_WRAPPER_HIDDENS", is_hiddens_computed)
-        input_x = params['input']
-        ts = params['timestep']
-        c = params['c']
-
-        if not is_hiddens_computed:
-            # Warn if there are multiple timesteps that are not the same, i.e. different timesteps for different images in the batch
-            if len(ts) > 1:
-                if not torch.all(ts == ts[0]):
-                    warnings.warn("[FABRIC] Different timesteps found for different images in the batch. \
-                                Proceeding with the first timestep.")
-
-            current_ts = ts[:1]
-
-            # Get partially noised reference latents for the current timestep
-            pos_zs = noise_latents(model_patched, pos_latents, current_ts)
-            neg_zs = noise_latents(model_patched, neg_latents, current_ts)
-            all_zs = torch.cat([pos_zs, neg_zs], dim=0)
-
-            #
-            # Make a forward pass to compute hidden states
-            #
-            batch_size = input_x.shape[0]
-            print("[FABRIC] batch_size:", batch_size)
-            # Process reference latents in batches
-            c_null_pos = get_null_cond(null_pos, len(pos_zs))
-            c_null_neg = get_null_cond(null_neg, len(neg_zs))
-            c_null = torch.cat([c_null_pos, c_null_neg], dim=0).to(device)
-            print("[FABRIC] all_zs:", all_zs.shape)
-            for a in range(0, len(all_zs), batch_size):
-                b = a + batch_size
-                print("[FABRIC] batch:", a, b)
-                batch_latents = all_zs[a:b]
-                c_null_batch = c_null[a:b]
-                c_null_dict = {
-                    'c_crossattn': [c_null_batch],
-                    'transformer_options': c['transformer_options']
-                }
-                for cond in c["c_crossattn"]:
-                    print("[FABRIC] batch c_crossattn:", cond.shape)
-                for cond in c_null_dict["c_crossattn"]:
-                    print("[FABRIC] batch null c_crossattn:", cond.shape)
-                batch_ts = broadcast_tensor(current_ts, len(batch_latents))
-                print("[FABRIC] timesteps:", batch_ts)
-                print("[FABRIC] model_func", batch_latents.shape, batch_ts.shape)
-                _ = model_func(batch_latents, batch_ts, **c_null_dict)
-            is_hiddens_computed = True
-        return input_x
-
-    print("[FABRIC] patching attn1")
-    model_patched.set_model_attn1_patch(compute_hidden_states)
-    print("[FABRIC] patching unet")
-    model_patched.set_model_unet_function_wrapper(unet_wrapper_hiddens)
-    print("model patches hiddens", model_patched.model_options["transformer_options"]["patches"])
-    _ = KSampler().sample(model_patched, seed, 1, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise)
-
-
-    for k, v in all_hiddens.items():
-        print(f"[FABRIC] layer {k}: {v.shape}")
-
-    pos_hiddens = {}
-    neg_hiddens = {}
-    num_pos = len(pos_latents)
-    num_neg = len(neg_latents)
-    for layer_idx, hidden in all_hiddens.items():
-        pos_hiddens[layer_idx] = hidden[:num_pos]
-        neg_hiddens[layer_idx] = hidden[num_pos:]
-
-    cond_or_uncond = None
-    def unet_wrapper(model_func, params):
-        input = params['input']
-        ts = params['timestep']
-        c = params['c']
-        nonlocal cond_or_uncond
-        cond_or_uncond = params['cond_or_uncond']
-        print("[FABRIC] unet_wrapper: cond_or_uncond:", cond_or_uncond)
-        return model_func(input, ts, **c)
-
-    # Modify model to use the hidden states
     def modified_attn1(q, k, v, extra_options):
+        # Modify model to use the hidden states
+        nonlocal is_modified_attn1, cond_or_uncond, pos_hiddens, neg_hiddens
+        nonlocal num_pos, num_neg
+        if not is_modified_attn1:
+            return q, k, v
+
+        print("=====================MODIFIED_ATTN1=====================")
         idx = extra_options['transformer_index']
-        printing = idx == 0
+        printing = True
+
         pos_hs = pos_hiddens[idx]
         neg_hs = neg_hiddens[idx]
         if printing:
@@ -146,11 +81,10 @@ def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, ne
             print(f"[FABRIC] modified_attn1: idx={idx}, pos_hiddens={pos_hs.shape}, neg_hiddens={neg_hs.shape}")
             print(f"[FABRIC] q={q.shape}, k={k.shape}, v={v.shape}")
         # Flatten the first dimension into the second dimension ([b, seq, dim] -> [1, b*seq, dim])
-        pos_hs = pos_hs.reshape(-1, pos_hs.shape[2]).unsqueeze(0)
-        neg_hs = neg_hs.reshape(-1, neg_hs.shape[2]).unsqueeze(0)
+        pos_hs = pos_hs.reshape(1, -1, pos_hs.shape[2])
+        neg_hs = neg_hs.reshape(1, -1, neg_hs.shape[2])
         if printing:
             print(f"[FABRIC] pos_hs={pos_hs.shape}, neg_hs={neg_hs.shape}")
-        # print(f"[FABRIC] extra_options={extra_options}")
         # Match the second dimensions
         largest_dim = max(pos_hs.shape[1], neg_hs.shape[1])
         if printing:
@@ -160,11 +94,7 @@ def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, ne
         neg_hs = match_shape(neg_hs, largest_shape)
         if printing:
             print(f"[FABRIC] after match: pos_hs={pos_hs.shape}, neg_hs={neg_hs.shape}")
-        # Broadcast the first dimension to the batch size
-        # pos_hs = broadcast_tensor(pos_hs, q.shape[0])
-        # neg_hs = broadcast_tensor(neg_hs, q.shape[0])
         # Concat the positive hidden states and negative hidden states to line up with cond and uncond noise
-        nonlocal cond_or_uncond
         cond_uncond_idxs = repeat_list_to_size(cond_or_uncond, q.shape[0])
         concat_hs = []
         if printing:
@@ -188,22 +118,115 @@ def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, ne
         # Apply weights
         weighted_v = v * weights[:, :, None]
         return q, k, weighted_v
-    
-    
-    # Restore original model
-    model_patched = model.clone()
-    print("model patches sampling", model_patched.model_options["transformer_options"])
-    model_patched.set_model_unet_function_wrapper(unet_wrapper)
-    model_patched.set_model_attn1_patch(modified_attn1)
-    print("model patches sampling", model_patched.model_options["transformer_options"]["patches"])
-    samples = KSampler().sample(model_patched, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise)
-    # Restore original model
-    model_patched = model.clone()
-    print("model patches finalize", model_patched.model_options["transformer_options"])
-    print("model finalize", model.model_options["transformer_options"])
 
+    def unet_wrapper(model_func, params):
+        nonlocal is_compute_hidden_states, is_modified_attn1
+        nonlocal pos_latents, neg_latents, all_latents
+        nonlocal pos_hiddens, neg_hiddens, all_hiddens
+        nonlocal cond_or_uncond
+        nonlocal num_pos, num_neg
+        nonlocal model_patched
+
+        input = params['input']
+        ts = params['timestep']
+        c = params['c']
+
+        # Save cond_or_uncond index for attention patch
+        cond_or_uncond = params['cond_or_uncond']
+        print("[FABRIC] unet_wrapper: cond_or_uncond:", cond_or_uncond)
+
+        #
+        # Compute hidden states
+        #
+        # Warn if there are multiple timesteps that are not the same, i.e. different timesteps for different images in the batch
+        if len(ts) > 1:
+            if not torch.all(ts == ts[0]):
+                warnings.warn("[FABRIC] Different timesteps found for different images in the batch. \
+                            Proceeding with the first timestep.")
+
+        current_ts = ts[:1]
+
+        # Noise the reference latents to the current timestep
+        pos_zs = noise_latents(model_patched, pos_latents, current_ts)
+        neg_zs = noise_latents(model_patched, neg_latents, current_ts)
+        all_zs = torch.cat([pos_zs, neg_zs], dim=0)
+
+        #
+        # Make a forward pass to compute hidden states
+        #
+        is_compute_hidden_states = True
+        is_modified_attn1 = False
+        all_hiddens = {}
+        pos_hiddens = {}
+        neg_hiddens = {}
+
+        batch_size = input.shape[0]
+        print("[FABRIC] batch_size:", batch_size)
+        # Process reference latents in batches
+        c_null_pos = get_null_cond(null_pos, len(pos_zs))
+        c_null_neg = get_null_cond(null_neg, len(neg_zs))
+        c_null = torch.cat([c_null_pos, c_null_neg], dim=0).to(device)
+        print("[FABRIC] all_zs:", all_zs.shape)
+        for a in range(0, len(all_zs), batch_size):
+            b = a + batch_size
+            print("[FABRIC] batch:", a, b)
+            batch_latents = all_zs[a:b]
+            c_null_batch = c_null[a:b]
+            c_null_dict = {
+                'c_crossattn': [c_null_batch],
+                'transformer_options': c['transformer_options']
+            }
+            for cond in c["c_crossattn"]:
+                print("[FABRIC] batch c_crossattn:", cond.shape)
+            for cond in c_null_dict["c_crossattn"]:
+                print("[FABRIC] batch null c_crossattn:", cond.shape)
+            batch_ts = broadcast_tensor(current_ts, len(batch_latents))
+            print("[FABRIC] timesteps:", batch_ts)
+            print("[FABRIC] model_func", batch_latents.shape, batch_ts.shape)
+            _ = model_func(batch_latents, batch_ts, **c_null_dict)
+
+        for layer_idx, hidden in all_hiddens.items():
+            pos_hiddens[layer_idx] = hidden[:num_pos]
+            neg_hiddens[layer_idx] = hidden[num_pos:]
+
+        # Do the actual forward pass
+        is_compute_hidden_states = False
+        is_modified_attn1 = True
+
+        return model_func(input, ts, **c)
+
+    model_patched.set_model_attn1_patch(store_hidden_states)
+    model_patched.set_model_attn1_patch(modified_attn1)
+    model_patched.set_model_unet_function_wrapper(unet_wrapper)
+    samples = KSampler().sample(model_patched, seed, steps, cfg, sampler_name,
+                                scheduler, positive, negative, latent_image, denoise)
     return samples
 
+
+def save(samples, filename):
+    counter = 1
+    import os
+    while os.path.exists(f"{filename}_{counter}_.latent"):
+        counter += 1
+    file = f"{filename}_{counter}_.latent"
+
+    output = {}
+    output["latent_tensor"] = samples
+    output["latent_format_version_0"] = torch.tensor([])
+
+    import safetensors
+    safetensors.torch.save_file(output, file)
+
+def load(i):
+    import safetensors
+    from safetensors.torch import load_file
+    latent_path = f"D:\ComfyUI\ComfyUI\input\z_{i}_.latent"
+    latent = safetensors.torch.load_file(latent_path, device="cpu")
+    print("Loaded latent", latent_path)
+    multiplier = 1.0
+    if "latent_format_version_0" not in latent:
+        multiplier = 1.0 / 0.18215
+    return latent["latent_tensor"].float() * multiplier
 
 def get_weights(pos_weight, neg_weight, q, num_pos, num_neg, cond_uncond_idxs):
     """
@@ -216,9 +239,9 @@ def get_weights(pos_weight, neg_weight, q, num_pos, num_neg, cond_uncond_idxs):
     for x in cond_uncond_idxs:
         weights = torch.ones(dim)
         if x == 1:
-            weights[input_dim:] *= pos_weight
+            weights[input_dim:] = pos_weight
         else:
-            weights[input_dim:] *= neg_weight
+            weights[input_dim:] = neg_weight
         batched_weights.append(weights)
     batched_weights = torch.stack(batched_weights).to(q.device)
     return batched_weights
@@ -251,10 +274,12 @@ def noise_latents(model, latents, ts):
     zs = []
     for latent in latents:
         z_ref = q_sample(model, latent.unsqueeze(0), ts)
+        print("[FABRIC] z_ref:", z_ref.shape, ts)
         zs.append(z_ref)
     if len(zs) == 0:
         return latents
     return torch.cat(zs, dim=0)
+
 
 def match_batch_size(tensor, batch_size):
     """
@@ -276,11 +301,13 @@ def match_shape(tensor, shape):
         tensor = zeros
     return tensor
 
+
 def repeat_list_to_size(lst, size):
     """
     If list=[1, 0] and size=4, returns [1, 1, 0, 0]
     """
     return [item for item in lst for _ in range(size // len(lst))]
+
 
 def copy_model_options(model_options):
     copy = {}

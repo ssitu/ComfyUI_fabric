@@ -32,6 +32,9 @@ def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, ne
     device = comfy.model_management.get_torch_device()
     pos_latents = pos_latents.to(device)
     neg_latents = neg_latents.to(device)
+    # Rescale latents for unit variance using precomputed std
+    pos_latents *= 0.18215
+    neg_latents *= 0.18215
     num_pos = len(pos_latents)
     num_neg = len(neg_latents)
     all_latents = all_latents.to(device)
@@ -56,7 +59,7 @@ def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, ne
             all_hiddens[idx] = q
         else:
             all_hiddens[idx] = torch.cat([all_hiddens[idx], q], dim=0)
-        print(f"[FABRIC] compute_hidden_states: idx={idx}, all_hiddens[idx].shape={all_hiddens[idx].shape}")
+        print(f"[FABRIC] compute_hidden_states: idx={idx}, all_hiddens[idx].shape={all_hiddens[idx].shape}, mean={all_hiddens[idx].mean()}")
         return q, k, v
 
     cond_or_uncond = None  # To be set in unet_wrapper
@@ -80,11 +83,12 @@ def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, ne
                 print(f"[FABRIC] {i} means: q={a.mean()}, k={b.mean()}, v={c.mean()}")
             print(f"[FABRIC] modified_attn1: idx={idx}, pos_hiddens={pos_hs.shape}, neg_hiddens={neg_hs.shape}")
             print(f"[FABRIC] q={q.shape}, k={k.shape}, v={v.shape}")
+            print(f"[FABRIC] pos_hs={pos_hs.shape}, mean={pos_hs.mean()}, neg_hs={neg_hs.shape}, mean={neg_hs.mean()}")
         # Flatten the first dimension into the second dimension ([b, seq, dim] -> [1, b*seq, dim])
         pos_hs = pos_hs.reshape(1, -1, pos_hs.shape[2])
         neg_hs = neg_hs.reshape(1, -1, neg_hs.shape[2])
         if printing:
-            print(f"[FABRIC] pos_hs={pos_hs.shape}, neg_hs={neg_hs.shape}")
+            print(f"[FABRIC] pos_hs={pos_hs.shape, pos_hs.mean()}, neg_hs={neg_hs.shape, neg_hs.mean()}")
         # Match the second dimensions
         largest_dim = max(pos_hs.shape[1], neg_hs.shape[1])
         if printing:
@@ -100,7 +104,7 @@ def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, ne
         if printing:
             print(f"[FABRIC] cond_uncond_idxs={cond_uncond_idxs}")
         for x in cond_uncond_idxs:
-            if x == 1:
+            if x == 0:
                 concat_hs.append(pos_hs)
             else:
                 concat_hs.append(neg_hs)
@@ -238,7 +242,7 @@ def get_weights(pos_weight, neg_weight, q, num_pos, num_neg, cond_uncond_idxs):
     batched_weights = []
     for x in cond_uncond_idxs:
         weights = torch.ones(dim)
-        if x == 1:
+        if x == 0:
             weights[input_dim:] = pos_weight
         else:
             weights[input_dim:] = neg_weight

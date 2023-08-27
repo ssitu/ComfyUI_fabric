@@ -1,12 +1,25 @@
 import warnings
 import torch
-import math
 import comfy
-from nodes import KSampler
+from nodes import KSamplerAdvanced
 from .unet import q_sample
 
 
-def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise, null_pos, null_neg, pos_weight, neg_weight, feedback_start, feedback_end, pos_latents=None, neg_latents=None):
+def sample_simplified(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise,
+                      null_pos, null_neg, pos_weight, neg_weight, feedback_start, feedback_end, pos_latents=None, neg_latents=None):
+    """
+    Regular KSampler with all FABRIC inputs
+    """
+    disable_noise = False
+    start_at_step = None
+    end_at_step = None
+    force_full_denoise = False
+    return fabric_sample(model, disable_noise, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, start_at_step, end_at_step, force_full_denoise, denoise,
+                         null_pos, null_neg, pos_weight, neg_weight, feedback_start, feedback_end, pos_latents, neg_latents)
+
+
+def fabric_sample(model, add_noise, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, start_at_step, end_at_step, return_with_leftover_noise, denoise,
+                  null_pos, null_neg, pos_weight, neg_weight, feedback_start, feedback_end, pos_latents=None, neg_latents=None):
     """
     Entry point for FABRIC
     """
@@ -14,19 +27,19 @@ def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, ne
     neg_latents = torch.empty(0, *latent_image['samples'].shape[1:]) if neg_latents is None else neg_latents['samples']
     if len(pos_latents) == 0 and len(neg_latents) == 0:
         print("[FABRIC] No reference latents found. Defaulting to regular KSampler.")
-        return KSampler().sample(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise)
+        return KSamplerAdvanced().sample(model, add_noise, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, start_at_step, end_at_step, return_with_leftover_noise, denoise)
     pos_w, pos_h = pos_latents.shape[2:]
     neg_w, neg_h = neg_latents.shape[2:]
     if pos_w != neg_w or pos_h != neg_h:
         print("[FABRIC] Reference latents have different sizes. Defaulting to regular KSampler.")
-        return KSampler().sample(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise)
+        return KSamplerAdvanced().sample(model, add_noise, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, start_at_step, end_at_step, return_with_leftover_noise, denoise)
 
     all_latents = torch.cat([pos_latents, neg_latents], dim=0)
 
     # If there are no reference latents, default to KSampler
     if len(all_latents) == 0:
         print("[FABRIC] No reference latents found. Defaulting to regular KSampler.")
-        return KSampler().sample(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise)
+        return KSamplerAdvanced().sample(model, add_noise, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, start_at_step, end_at_step, return_with_leftover_noise, denoise)
 
     model_patched = model.clone()
     device = comfy.model_management.get_torch_device()
@@ -168,8 +181,8 @@ def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, ne
     model_patched.set_model_attn1_patch(store_hidden_states)
     model_patched.set_model_attn1_patch(modified_attn1)
     model_patched.set_model_unet_function_wrapper(unet_wrapper)
-    samples = KSampler().sample(model_patched, seed, steps, cfg, sampler_name,
-                                scheduler, positive, negative, latent_image, denoise)
+    samples = KSamplerAdvanced().sample(model_patched, add_noise, noise_seed, steps, cfg, sampler_name, scheduler, positive,
+                                        negative, latent_image, start_at_step, end_at_step, return_with_leftover_noise, denoise)
     return samples
 
 

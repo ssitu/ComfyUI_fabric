@@ -3,7 +3,8 @@ import torch
 import math
 import comfy
 from nodes import KSampler
-from .unet import get_timesteps, q_sample
+from .unet import q_sample
+
 
 def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise, null_pos, null_neg, pos_weight, neg_weight, feedback_start, feedback_end, pos_latents=None, neg_latents=None):
     """
@@ -11,7 +12,6 @@ def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, ne
     """
     pos_latents = torch.empty(0, *latent_image['samples'].shape[1:]) if pos_latents is None else pos_latents['samples']
     neg_latents = torch.empty(0, *latent_image['samples'].shape[1:]) if neg_latents is None else neg_latents['samples']
-    print("[FABRIC] latents shape:", pos_latents.shape, neg_latents.shape)
     if len(pos_latents) == 0 and len(neg_latents) == 0:
         print("[FABRIC] No reference latents found. Defaulting to regular KSampler.")
         return KSampler().sample(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise)
@@ -52,14 +52,12 @@ def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, ne
         nonlocal is_compute_hidden_states, all_hiddens
         if not is_compute_hidden_states:
             return q, k, v
-        
-        print("=====================STORE_HIDDEN_STATES=====================")
+
         idx = extra_options['transformer_index']
         if idx not in all_hiddens:
             all_hiddens[idx] = q
         else:
             all_hiddens[idx] = torch.cat([all_hiddens[idx], q], dim=0)
-        print(f"[FABRIC] compute_hidden_states: idx={idx}, all_hiddens[idx].shape={all_hiddens[idx].shape}, mean={all_hiddens[idx].mean()}")
         return q, k, v
 
     cond_or_uncond = None  # To be set in unet_wrapper
@@ -72,53 +70,31 @@ def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, ne
         if not is_modified_attn1:
             return q, k, v
 
-        print("=====================MODIFIED_ATTN1=====================")
         idx = extra_options['transformer_index']
-        printing = True
 
         pos_hs = pos_hiddens[idx]
         neg_hs = neg_hiddens[idx]
-        if printing:
-            for i, (a, b, c) in enumerate(zip(q, k, v)):
-                print(f"[FABRIC] {i} means: q={a.mean()}, k={b.mean()}, v={c.mean()}")
-            print(f"[FABRIC] modified_attn1: idx={idx}, pos_hiddens={pos_hs.shape}, neg_hiddens={neg_hs.shape}")
-            print(f"[FABRIC] q={q.shape}, k={k.shape}, v={v.shape}")
-            print(f"[FABRIC] pos_hs={pos_hs.shape}, mean={pos_hs.mean()}, neg_hs={neg_hs.shape}, mean={neg_hs.mean()}")
         # Flatten the first dimension into the second dimension ([b, seq, dim] -> [1, b*seq, dim])
         pos_hs = pos_hs.reshape(1, -1, pos_hs.shape[2])
         neg_hs = neg_hs.reshape(1, -1, neg_hs.shape[2])
-        if printing:
-            print(f"[FABRIC] pos_hs={pos_hs.shape, pos_hs.mean()}, neg_hs={neg_hs.shape, neg_hs.mean()}")
         # Match the second dimensions
         largest_dim = max(pos_hs.shape[1], neg_hs.shape[1])
-        if printing:
-            print(f"[FABRIC] largest_dim={largest_dim}")
         largest_shape = (1, largest_dim, pos_hs.shape[2])
         pos_hs = match_shape(pos_hs, largest_shape)
         neg_hs = match_shape(neg_hs, largest_shape)
-        if printing:
-            print(f"[FABRIC] after match: pos_hs={pos_hs.shape}, neg_hs={neg_hs.shape}")
         # Concat the positive hidden states and negative hidden states to line up with cond and uncond noise
         cond_uncond_idxs = repeat_list_to_size(cond_or_uncond, q.shape[0])
         concat_hs = []
-        if printing:
-            print(f"[FABRIC] cond_uncond_idxs={cond_uncond_idxs}")
         for x in cond_uncond_idxs:
             if x == 0:
                 concat_hs.append(pos_hs)
             else:
                 concat_hs.append(neg_hs)
         concat_hs = torch.cat(concat_hs, dim=0)
-        if printing:
-            print(f"[FABRIC] after concat: concat_hs={concat_hs.shape}")
         # Concat hs to k and v
         k = torch.cat([k, concat_hs], dim=1)
         v = torch.cat([v, concat_hs], dim=1)
-        if printing:
-            print(f"[FABRIC] after concat: k={k.shape}, v={v.shape}")
         weights = get_weights(pos_weight, neg_weight, q, num_pos, num_neg, cond_uncond_idxs)
-        if printing:
-            print(f"[FABRIC] weights={weights.shape}, mean={weights.mean()}")
         # Apply weights
         weighted_v = v * weights[:, :, None]
         return q, k, weighted_v
@@ -137,7 +113,6 @@ def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, ne
 
         # Save cond_or_uncond index for attention patch
         cond_or_uncond = params['cond_or_uncond']
-        print("[FABRIC] unet_wrapper: cond_or_uncond:", cond_or_uncond)
 
         #
         # Compute hidden states
@@ -165,28 +140,19 @@ def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, ne
         neg_hiddens = {}
 
         batch_size = input.shape[0]
-        print("[FABRIC] batch_size:", batch_size)
         # Process reference latents in batches
         c_null_pos = get_null_cond(null_pos, len(pos_zs))
         c_null_neg = get_null_cond(null_neg, len(neg_zs))
         c_null = torch.cat([c_null_pos, c_null_neg], dim=0).to(device)
-        print("[FABRIC] all_zs:", all_zs.shape)
         for a in range(0, len(all_zs), batch_size):
             b = a + batch_size
-            print("[FABRIC] batch:", a, b)
             batch_latents = all_zs[a:b]
             c_null_batch = c_null[a:b]
             c_null_dict = {
                 'c_crossattn': [c_null_batch],
                 'transformer_options': c['transformer_options']
             }
-            for cond in c["c_crossattn"]:
-                print("[FABRIC] batch c_crossattn:", cond.shape)
-            for cond in c_null_dict["c_crossattn"]:
-                print("[FABRIC] batch null c_crossattn:", cond.shape)
             batch_ts = broadcast_tensor(current_ts, len(batch_latents))
-            print("[FABRIC] timesteps:", batch_ts)
-            print("[FABRIC] model_func", batch_latents.shape, batch_ts.shape)
             _ = model_func(batch_latents, batch_ts, **c_null_dict)
 
         for layer_idx, hidden in all_hiddens.items():
@@ -206,31 +172,6 @@ def fabric_sample(model, seed, steps, cfg, sampler_name, scheduler, positive, ne
                                 scheduler, positive, negative, latent_image, denoise)
     return samples
 
-
-def save(samples, filename):
-    counter = 1
-    import os
-    while os.path.exists(f"{filename}_{counter}_.latent"):
-        counter += 1
-    file = f"{filename}_{counter}_.latent"
-
-    output = {}
-    output["latent_tensor"] = samples
-    output["latent_format_version_0"] = torch.tensor([])
-
-    import safetensors
-    safetensors.torch.save_file(output, file)
-
-def load(i):
-    import safetensors
-    from safetensors.torch import load_file
-    latent_path = f"D:\ComfyUI\ComfyUI\input\z_{i}_.latent"
-    latent = safetensors.torch.load_file(latent_path, device="cpu")
-    print("Loaded latent", latent_path)
-    multiplier = 1.0
-    if "latent_format_version_0" not in latent:
-        multiplier = 1.0 / 0.18215
-    return latent["latent_tensor"].float() * multiplier
 
 def get_weights(pos_weight, neg_weight, q, num_pos, num_neg, cond_uncond_idxs):
     """
@@ -278,7 +219,6 @@ def noise_latents(model, latents, ts):
     zs = []
     for latent in latents:
         z_ref = q_sample(model, latent.unsqueeze(0), ts)
-        print("[FABRIC] z_ref:", z_ref.shape, ts)
         zs.append(z_ref)
     if len(zs) == 0:
         return latents

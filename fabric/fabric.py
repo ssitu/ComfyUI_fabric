@@ -60,9 +60,9 @@ def fabric_sample(model, add_noise, noise_seed, steps, cfg, sampler_name, schedu
     device = comfy.model_management.get_torch_device()
     pos_latents = pos_latents.to(device)
     neg_latents = neg_latents.to(device)
-    # Rescale latents for unit variance using precomputed std
-    pos_latents *= 0.18215
-    neg_latents *= 0.18215
+    # Scale latents for unit variance
+    pos_latents = model.model.process_latent_in(pos_latents)
+    neg_latents = model.model.process_latent_in(neg_latents)
     num_pos = len(pos_latents)
     num_neg = len(neg_latents)
     all_latents = all_latents.to(device)

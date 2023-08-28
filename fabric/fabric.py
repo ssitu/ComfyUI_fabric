@@ -1,11 +1,26 @@
 import warnings
 import torch
 import comfy
-from nodes import KSamplerAdvanced
+from nodes import KSamplerAdvanced, CLIPTextEncode
 from .unet import q_sample
 
+def ksampler_fabric(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise,
+                    clip, pos_weight, neg_weight, feedback_percent, pos_latents=None, neg_latents=None):
+    """
+    Regular KSampler with all FABRIC inputs
+    """
+    disable_noise = False
+    start_at_step = None
+    end_at_step = None
+    force_full_denoise = False
+    clip_encode = CLIPTextEncode()
+    null_cond = clip_encode.encode(clip, "")[0]
+    feedback_start = 0
+    feedback_end = int(steps * feedback_percent)
+    return fabric_sample(model, disable_noise, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, start_at_step, end_at_step, force_full_denoise, denoise,
+                         null_cond, null_cond, pos_weight, neg_weight, feedback_start, feedback_end, pos_latents, neg_latents)
 
-def sample_simplified(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise,
+def ksampler_advfabric(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise,
                       null_pos, null_neg, pos_weight, neg_weight, feedback_start, feedback_end, pos_latents=None, neg_latents=None):
     """
     Regular KSampler with all FABRIC inputs

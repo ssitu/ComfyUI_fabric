@@ -2,7 +2,7 @@ import warnings
 import torch
 import comfy
 from nodes import KSamplerAdvanced, CLIPTextEncode
-from .unet import q_sample
+from .unet import q_sample, get_timesteps
 
 def ksampler_fabric(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise,
                     clip, pos_weight, neg_weight, feedback_percent, pos_latents=None, neg_latents=None):
@@ -67,6 +67,13 @@ def fabric_sample(model, add_noise, noise_seed, steps, cfg, sampler_name, schedu
     num_neg = len(neg_latents)
     all_latents = all_latents.to(device)
     print(f"[FABRIC] {num_pos} positive latents, {num_neg} negative latents")
+
+    #
+    # Map steps to timesteps
+    #
+    timesteps = get_timesteps(model_patched, steps, sampler_name, scheduler, denoise, device)
+    feedback_start_ts = timesteps[feedback_start]
+    feedback_end_ts = timesteps[min(feedback_end, len(timesteps) - 1)]
 
     #
     # Precompute hidden states
@@ -134,10 +141,15 @@ def fabric_sample(model, add_noise, noise_seed, steps, cfg, sampler_name, schedu
         nonlocal cond_or_uncond
         nonlocal num_pos, num_neg
         nonlocal model_patched
+        nonlocal feedback_start_ts, feedback_end_ts
 
         input = params['input']
         ts = params['timestep']
         c = params['c']
+
+        # Normal pass if not in feedback range
+        if not (feedback_end_ts.item() <= ts[0].item() <= feedback_start_ts.item()):
+            return model_func(input, ts, **c)
 
         # Save cond_or_uncond index for attention patch
         cond_or_uncond = params['cond_or_uncond']

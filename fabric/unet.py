@@ -16,10 +16,6 @@ def q_sample(model, x_start, t):
             extract_into_tensor(sqrt_one_minus_alphas_cumprod, t, x_start.shape) * noise)
 
 
-#
-# UNUSED
-#
-
 def get_timesteps(model, steps, sampler, scheduler, denoise, device):
     real_model = model.model
     sampler = comfy.samplers.KSampler(
@@ -27,6 +23,10 @@ def get_timesteps(model, steps, sampler, scheduler, denoise, device):
         scheduler=scheduler, denoise=denoise, model_options=model.model_options
     )
     return sampler.model_wrap.sigma_to_discrete_timestep(sampler.sigmas)
+
+#
+# UNUSED
+#
 
 
 def forward(model, steps, sampler, scheduler, denoise, device, zs, ts, pos, neg, seed):

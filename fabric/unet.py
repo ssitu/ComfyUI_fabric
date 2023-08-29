@@ -24,10 +24,6 @@ def get_timesteps(model, steps, sampler, scheduler, denoise, device):
     )
     return sampler.model_wrap.sigma_to_discrete_timestep(sampler.sigmas)
 
-#
-# UNUSED
-#
-
 
 def forward(model, steps, sampler, scheduler, denoise, device, zs, ts, pos, neg, seed):
     real_model = model.model

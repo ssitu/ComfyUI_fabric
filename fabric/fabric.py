@@ -4,6 +4,7 @@ import comfy
 from nodes import KSamplerAdvanced, CLIPTextEncode
 from .unet import q_sample, get_timesteps
 
+
 def ksampler_fabric(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise,
                     clip, pos_weight, neg_weight, feedback_percent, pos_latents=None, neg_latents=None):
     """
@@ -20,8 +21,9 @@ def ksampler_fabric(model, seed, steps, cfg, sampler_name, scheduler, positive, 
     return fabric_sample(model, disable_noise, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, start_at_step, end_at_step, force_full_denoise, denoise,
                          null_cond, null_cond, pos_weight, neg_weight, feedback_start, feedback_end, pos_latents, neg_latents)
 
+
 def ksampler_advfabric(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise,
-                      null_pos, null_neg, pos_weight, neg_weight, feedback_start, feedback_end, pos_latents=None, neg_latents=None):
+                       null_pos, null_neg, pos_weight, neg_weight, feedback_start, feedback_end, pos_latents=None, neg_latents=None):
     """
     Regular KSampler with all FABRIC inputs
     """
@@ -43,11 +45,17 @@ def fabric_sample(model, add_noise, noise_seed, steps, cfg, sampler_name, schedu
     if len(pos_latents) == 0 and len(neg_latents) == 0:
         print("[FABRIC] No reference latents found. Defaulting to regular KSampler.")
         return KSamplerAdvanced().sample(model, add_noise, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, start_at_step, end_at_step, return_with_leftover_noise, denoise)
-    pos_w, pos_h = pos_latents.shape[2:]
-    neg_w, neg_h = neg_latents.shape[2:]
-    if pos_w != neg_w or pos_h != neg_h:
-        print("[FABRIC] Reference latents have different sizes. Defaulting to regular KSampler.")
-        return KSamplerAdvanced().sample(model, add_noise, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, start_at_step, end_at_step, return_with_leftover_noise, denoise)
+    
+    pos_shape_mismatch = pos_latents.shape[1:] != latent_image['samples'].shape[1:]
+    neg_shape_mismatch = neg_latents.shape[1:] != latent_image['samples'].shape[1:]
+    if pos_shape_mismatch or neg_shape_mismatch:
+        warnings.warn("[FABRIC] Latents have different sizes. Resizing latents to the same size as input latent.")
+        if pos_shape_mismatch:
+            pos_latents = comfy.utils.common_upscale(
+                pos_latents, latent_image['samples'].shape[3], latent_image['samples'].shape[2], "bilinear", "center")
+        if neg_shape_mismatch:
+            neg_latents = comfy.utils.common_upscale(
+                neg_latents, latent_image['samples'].shape[3], latent_image['samples'].shape[2], "bilinear", "center")
 
     all_latents = torch.cat([pos_latents, neg_latents], dim=0)
 
@@ -69,7 +77,7 @@ def fabric_sample(model, add_noise, noise_seed, steps, cfg, sampler_name, schedu
     print(f"[FABRIC] {num_pos} positive latents, {num_neg} negative latents")
 
     #
-    # Map steps to timesteps
+    # Translate start and end step to timesteps
     #
     timesteps = get_timesteps(model_patched, steps, sampler_name, scheduler, denoise, device)
     feedback_start_ts = timesteps[feedback_start]
@@ -215,7 +223,7 @@ def fabric_sample(model, add_noise, noise_seed, steps, cfg, sampler_name, schedu
 
 def get_weights(pos_weight, neg_weight, q, num_pos, num_neg, cond_uncond_idxs):
     """
-    Prepare weights for the loss function
+    Prepare weights for the weighted attention
     """
     input_dim = q.shape[1]
     hs_dim = max(num_pos, num_neg) * input_dim
@@ -291,13 +299,3 @@ def repeat_list_to_size(lst, size):
     If list=[1, 0] and size=4, returns [1, 1, 0, 0]
     """
     return [item for item in lst for _ in range(size // len(lst))]
-
-
-def copy_model_options(model_options):
-    copy = {}
-    for k, v in model_options.items():
-        if isinstance(v, list):
-            copy[k] = v.copy()
-        else:
-            copy[k] = v
-    return copy

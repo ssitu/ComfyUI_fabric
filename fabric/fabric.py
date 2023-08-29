@@ -8,7 +8,7 @@ from .unet import q_sample, get_timesteps
 def ksampler_fabric(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise,
                     clip, pos_weight, neg_weight, feedback_percent, pos_latents=None, neg_latents=None):
     """
-    Regular KSampler with all FABRIC inputs
+    Regular KSampler with intended FABRIC inputs
     """
     disable_noise = False
     start_at_step = None

@@ -1,5 +1,8 @@
 from nodes import KSampler, KSamplerAdvanced
 from .fabric.fabric import fabric_sample, ksampler_advfabric, ksampler_fabric
+import torch
+import comfy
+import warnings
 
 
 class KSamplerFABRIC:
@@ -97,14 +100,38 @@ class KSamplerFABRICSimple:
         return ksampler_fabric(*args, **kwargs)
 
 
+class LatentBatch:
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": { "latent1": ("LATENT",), "latent2": ("LATENT",)}}
+
+    RETURN_TYPES = ("LATENT",)
+    FUNCTION = "batch"
+
+    CATEGORY = "FABRIC"
+
+    def batch(self, latent1, latent2):
+        lat1 = latent1["samples"]
+        lat2 = latent2["samples"]
+        if lat1.shape[1:] != lat2.shape[1:]:
+            warnings.warn("Latent shapes do not match, upscaling latent2 to match latent1")
+            lat2 = comfy.utils.common_upscale(lat2, lat1.shape[3], lat1.shape[2], "bilinear", "center")
+        result = torch.cat((lat1, lat2), dim=0)
+        latent1["samples"] = result
+        return (latent1,)
+
+
 NODE_CLASS_MAPPINGS = {
     "KSamplerFABRIC": KSamplerFABRIC,
     "KSamplerAdvFABRIC": KSamplerAdvFABRIC,
     "KSamplerFABRICSimple": KSamplerFABRICSimple,
+    "LatentBatch": LatentBatch,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "KSamplerFABRIC": "KSampler With FABRIC",
     "KSamplerAdvFABRIC": "KSampler FABRIC (Advanced)",
     "KSamplerFABRICSimple": "KSampler FABRIC (Simple)",
+    "LatentBatch": "Batch Latents",
 }

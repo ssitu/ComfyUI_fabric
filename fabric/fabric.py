@@ -49,7 +49,8 @@ def fabric_sample(model, add_noise, noise_seed, steps, cfg, sampler_name, schedu
     pos_shape_mismatch = pos_latents.shape[1:] != latent_image['samples'].shape[1:]
     neg_shape_mismatch = neg_latents.shape[1:] != latent_image['samples'].shape[1:]
     if pos_shape_mismatch or neg_shape_mismatch:
-        warnings.warn(f"\n[FABRIC] Latents have different sizes (input: {latent_image['samples'].shape}, pos: {pos_latents.shape}, neg: {neg_latents.shape}). Resizing latents to the same size as input latent. It is recommended to resize the latents beforehand in pixel space or using a model to resize the latent.")
+        warnings.warn(
+            f"\n[FABRIC] Latents have different sizes (input: {latent_image['samples'].shape}, pos: {pos_latents.shape}, neg: {neg_latents.shape}). Resizing latents to the same size as input latent. It is recommended to resize the latents beforehand in pixel space or using a model to resize the latent.")
         if pos_shape_mismatch:
             pos_latents = comfy.utils.common_upscale(
                 pos_latents, latent_image['samples'].shape[3], latent_image['samples'].shape[2], "bilinear", "center")
@@ -197,7 +198,7 @@ def fabric_sample(model, add_noise, noise_seed, steps, cfg, sampler_name, schedu
             batch_latents = all_zs[a:b]
             c_null_batch = c_null[a:b]
             c_null_dict = {
-                'c_crossattn': [c_null_batch],
+                'c_crossattn': c_null_batch,
                 'transformer_options': c['transformer_options']
             }
             batch_ts = broadcast_tensor(current_ts, len(batch_latents))

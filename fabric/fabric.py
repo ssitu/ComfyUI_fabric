@@ -3,6 +3,7 @@ import torch
 import comfy
 from nodes import KSamplerAdvanced, CLIPTextEncode
 from .unet import q_sample, get_timesteps
+from .weighted_attn import Weighted_Attn_Patcher
 
 
 def ksampler_fabric(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise,
@@ -107,10 +108,14 @@ def fabric_sample(model, add_noise, noise_seed, steps, cfg, sampler_name, schedu
     cond_or_uncond = None  # To be set in unet_wrapper
     is_modified_attn1 = False
 
+    # Create weighted attention patcher
+    attn_patcher = Weighted_Attn_Patcher()
+
     def modified_attn1(q, k, v, extra_options):
-        # Modify model to use the hidden states
+        # Modify self attention to use the hidden states
         nonlocal is_modified_attn1, cond_or_uncond, pos_hiddens, neg_hiddens
         nonlocal num_pos, num_neg
+        nonlocal attn_patcher
         if not is_modified_attn1:
             return q, k, v
 
@@ -140,8 +145,17 @@ def fabric_sample(model, add_noise, noise_seed, steps, cfg, sampler_name, schedu
         v = torch.cat([v, concat_hs], dim=1)
         weights = get_weights(pos_weight, neg_weight, q, num_pos, num_neg, cond_uncond_idxs)
         # Apply weights
-        weighted_v = v * weights[:, :, None]
-        return q, k, weighted_v
+        attn_patcher.patch(weights, extra_options)
+        return q, k, v
+    
+    def after_attn1(out, extra_options):
+        """
+        After self attention, unpatch the attention
+        """
+        nonlocal is_modified_attn1, attn_patcher
+        if is_modified_attn1:
+            attn_patcher.unpatch()
+        return out
 
     def unet_wrapper(model_func, params):
         nonlocal is_compute_hidden_states, is_modified_attn1
@@ -211,11 +225,15 @@ def fabric_sample(model, add_noise, noise_seed, steps, cfg, sampler_name, schedu
         # Do the actual forward pass
         is_compute_hidden_states = False
         is_modified_attn1 = True
+        out = model_func(input, ts, **c)
 
-        return model_func(input, ts, **c)
+        is_compute_hidden_states = False
+        is_modified_attn1 = False
+        return out
 
     model_patched.set_model_attn1_patch(store_hidden_states)
     model_patched.set_model_attn1_patch(modified_attn1)
+    model_patched.set_model_attn1_output_patch(after_attn1)
     model_patched.set_model_unet_function_wrapper(unet_wrapper)
     samples = KSamplerAdvanced().sample(model_patched, add_noise, noise_seed, steps, cfg, sampler_name, scheduler, positive,
                                         negative, latent_image, start_at_step, end_at_step, return_with_leftover_noise, denoise)

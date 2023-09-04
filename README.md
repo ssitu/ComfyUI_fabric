@@ -46,3 +46,10 @@ Nodes can be found in the node menu under `FABRIC/`:
 * Input latent, pos_latents, and neg_latents should all be the same size. If they are not, they will be resized to the size of the input latent using bilinear interpolation, which is not a good way to resize latents so resize them in pixel space or use a model to resize the latents.
 * Pay attention to the pos/neg weights. The default value of 1.0 is probably too high in most cases.
 * The researchers recommend to only apply feedback to the first half of the denoising steps.
+
+
+
+## Examples
+Round by round feedback:
+![image](https://github.com/ssitu/ComfyUI_fabric/assets/57548627/f28924a1-819c-408a-832a-bacb2e30370b)
+

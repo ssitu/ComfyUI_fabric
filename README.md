@@ -9,7 +9,7 @@ SD Web UI Extension: https://github.com/dvruette/sd-webui-fabric
 
 ## Installation
 
-This has been tested for ComfyUI with commit [c335fdf2000d2e45640c01c4e89ef88c131dda53](https://github.com/comfyanonymous/ComfyUI/commit/7931ff0fd95c1842b0c8e7f5cc3a2ce5d3b88b3b)
+This has been tested for ComfyUI for the following commit: [1938f5c5fe479996802c46d5c2233887e3598a40](https://github.com/comfyanonymous/ComfyUI/commit/1938f5c5fe479996802c46d5c2233887e3598a40)
 
 Navigate to `ComfyUI/custom_nodes/` and run the following command:
 ```
@@ -47,9 +47,11 @@ Nodes can be found in the node menu under `FABRIC/`:
 * Pay attention to the pos/neg weights. The default value of 1.0 is probably too high in most cases.
 * The researchers recommend to only apply feedback to the first half of the denoising steps.
 
-
+## Problems
+* When using PyTorch's cross attention, memory usage is larger than the other cross attention methods.
 
 ## Examples
 Round by round feedback:
-![image](https://github.com/ssitu/ComfyUI_fabric/assets/57548627/f28924a1-819c-408a-832a-bacb2e30370b)
+![image](https://github.com/ssitu/ComfyUI_fabric/assets/57548627/5bc67956-f41c-4c50-8641-a0d45347afc6)
+
 

@@ -46,9 +46,7 @@ Nodes can be found in the node menu under `FABRIC/`:
 * Input latent, pos_latents, and neg_latents should all be the same size. If they are not, they will be resized to the size of the input latent using bilinear interpolation, which is not a good way to resize latents so resize them in pixel space or use a model to resize the latents.
 * Pay attention to the pos/neg weights. The default value of 1.0 is probably too high in most cases.
 * The researchers recommend to only apply feedback to the first half of the denoising steps.
-
-## Problems
-* When using PyTorch's cross attention, memory usage is larger than the other cross attention methods.
+* If you are having out of memory errors, try switching cross attention methods or use a smaller batch of positive/negative latents.
 
 ## Examples
 Round by round feedback:

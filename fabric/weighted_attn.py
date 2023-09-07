@@ -110,5 +110,5 @@ def get_attn_bias(weights, shape, dtype):
     attn_bias = weights.log().clamp(min=min_val)
     view_shape = [B, *([1] * (len(shape) - 2)), nk]
     # print("[Weighted Attn] get_attn_bias:", attn_bias.shape, view_shape, shape)
-    attn_bias = attn_bias.view(view_shape).expand(shape)
+    attn_bias = attn_bias.view(view_shape).expand(shape).to(dtype)
     return attn_bias

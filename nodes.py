@@ -1,5 +1,5 @@
 from nodes import KSampler, KSamplerAdvanced
-from .fabric.fabric import fabric_sample, ksampler_advfabric, ksampler_fabric
+from .fabric.fabric import fabric_sample, ksampler_advfabric, ksampler_fabric, fabric_patch
 import torch
 import comfy
 import warnings
@@ -104,7 +104,7 @@ class LatentBatch:
 
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": { "latent1": ("LATENT",), "latent2": ("LATENT",)}}
+        return {"required": {"latent1": ("LATENT",), "latent2": ("LATENT",)}}
 
     RETURN_TYPES = ("LATENT",)
     FUNCTION = "batch"
@@ -115,11 +115,37 @@ class LatentBatch:
         lat1 = latent1["samples"]
         lat2 = latent2["samples"]
         if lat1.shape[1:] != lat2.shape[1:]:
-            warnings.warn("Latent shapes do not match, upscaling latent2 to match latent1")
+            warnings.warn("Latent shapes do not match, resizing latent2 to match latent1")
             lat2 = comfy.utils.common_upscale(lat2, lat1.shape[3], lat1.shape[2], "bilinear", "center")
         result = torch.cat((lat1, lat2), dim=0)
         latent1["samples"] = result
         return (latent1,)
+
+
+class FABRICPatchModelAdv:
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "model": ("MODEL",),
+                "null_pos": ("CONDITIONING",),
+                "null_neg": ("CONDITIONING",),
+                "pos_weight": ("FLOAT", {"default": 1., "min": 0., "max": 1., "step": 0.01}),
+                "neg_weight": ("FLOAT", {"default": 1., "min": 0., "max": 1., "step": 0.01}),
+            },
+            "optional": {
+                "pos_latents": ("LATENT",),
+                "neg_latents": ("LATENT",),
+            }
+        }
+    
+    RETURN_TYPES = ("MODEL",)
+    FUNCTION = "patch"
+    CATEGORY = "FABRIC"
+
+    def patch(self, *args, **kwargs):
+        return fabric_patch(*args, **kwargs)
 
 
 NODE_CLASS_MAPPINGS = {
@@ -127,6 +153,7 @@ NODE_CLASS_MAPPINGS = {
     "KSamplerAdvFABRIC": KSamplerAdvFABRIC,
     "KSamplerFABRICSimple": KSamplerFABRICSimple,
     "LatentBatch": LatentBatch,
+    "FABRICPatchModelAdv": FABRICPatchModelAdv,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -134,4 +161,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "KSamplerAdvFABRIC": "KSampler FABRIC (Advanced)",
     "KSamplerFABRICSimple": "KSampler FABRIC (Simple)",
     "LatentBatch": "Batch Latents",
+    "FABRICPatchModelAdv": "FABRIC Patch Model (Advanced)",
 }

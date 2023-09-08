@@ -171,7 +171,7 @@ def fabric_sample(model, add_noise, noise_seed, steps, cfg, sampler_name, schedu
         c = params['c']
 
         # Normal pass if not in feedback range
-        if not (feedback_end_ts.item() <= ts[0].item() <= feedback_start_ts.item()):
+        if not (feedback_end_ts.item() < ts[0].item() <= feedback_start_ts.item()):
             return model_func(input, ts, **c)
 
         # Save cond_or_uncond index for attention patch
@@ -359,9 +359,8 @@ class FABRICPatcher:
 
             # Normal pass if not in feedback range
             if ts_interval is not None:
-                ts_start = ts_interval[0]
-                ts_end = ts_interval[1]
-                if not (ts_start <= ts[0].item() <= ts_end):
+                ts_start, ts_end = ts_interval
+                if not (ts_end < ts[0].item() <= ts_start):
                     return model_func(input, ts, **c)
 
             # Save cond_or_uncond index for attention patch

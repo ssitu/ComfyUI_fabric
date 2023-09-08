@@ -1,4 +1,4 @@
-from nodes import KSampler, KSamplerAdvanced
+from nodes import KSampler, KSamplerAdvanced, CLIPTextEncode
 from .fabric.fabric import fabric_sample, ksampler_advfabric, ksampler_fabric, fabric_patch
 import torch
 import comfy
@@ -146,6 +146,37 @@ class FABRICPatchModelAdv:
 
     def patch(self, *args, **kwargs):
         return fabric_patch(*args, **kwargs)
+    
+
+class FABRICPatchModel:
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "model": ("MODEL",),
+                "clip": ("CLIP",),
+                "pos_weight": ("FLOAT", {"default": 1., "min": 0., "max": 1., "step": 0.01}),
+                "neg_weight": ("FLOAT", {"default": 1., "min": 0., "max": 1., "step": 0.01}),
+            },
+            "optional": {
+                "pos_latents": ("LATENT",),
+                "neg_latents": ("LATENT",),
+            }
+        }
+    
+    RETURN_TYPES = ("MODEL",)
+    FUNCTION = "patch"
+    CATEGORY = "FABRIC"
+
+    def patch(self, *args, **kwargs):
+        clip = kwargs["clip"]
+        clip_encode = CLIPTextEncode()
+        null_cond = clip_encode.encode(clip, "")[0]
+        del kwargs["clip"]
+        kwargs["null_pos"] = null_cond
+        kwargs["null_neg"] = null_cond
+        return fabric_patch(*args, **kwargs)
 
 
 NODE_CLASS_MAPPINGS = {
@@ -154,6 +185,7 @@ NODE_CLASS_MAPPINGS = {
     "KSamplerFABRICSimple": KSamplerFABRICSimple,
     "LatentBatch": LatentBatch,
     "FABRICPatchModelAdv": FABRICPatchModelAdv,
+    "FABRICPatchModel": FABRICPatchModel,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -162,4 +194,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "KSamplerFABRICSimple": "KSampler FABRIC (Simple)",
     "LatentBatch": "Batch Latents",
     "FABRICPatchModelAdv": "FABRIC Patch Model (Advanced)",
+    "FABRICPatchModel": "FABRIC Patch Model",
 }

@@ -75,8 +75,8 @@ class Weighted_Attn_Patcher:
                     B, nq, nk = out.shape
                     # Expand and reshape weights: (bs, 1, nk) -> (bs, h, nk) -> (bs*h, nk)
                     ws = weights.unsqueeze(1).expand(-1, h, nk).reshape(-1, nk)
-                    # out *= ws[:, None, :]
-                    # out /= out.sum(dim=-1, keepdim=True)
+                    out *= ws[:, None, :]
+                    out /= out.sum(dim=-1, keepdim=True)
                     return out
                 except Exception as e:
                     print(e)

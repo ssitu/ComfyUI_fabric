@@ -1,243 +1,278 @@
 import warnings
 import torch
 import comfy
-from nodes import KSamplerAdvanced, CLIPTextEncode
+from nodes import KSamplerAdvanced
 from .unet import q_sample, get_timesteps
 from .weighted_attn import Weighted_Attn_Patcher
-
-
-def ksampler_fabric(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise,
-                    clip, pos_weight, neg_weight, feedback_percent, pos_latents=None, neg_latents=None):
-    """
-    Regular KSampler with intended FABRIC inputs
-    """
-    disable_noise = False
-    start_at_step = None
-    end_at_step = None
-    force_full_denoise = False
-    clip_encode = CLIPTextEncode()
-    null_cond = clip_encode.encode(clip, "")[0]
-    feedback_start = 0
-    feedback_end = int(steps * feedback_percent)
-    return fabric_sample(model, disable_noise, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, start_at_step, end_at_step, force_full_denoise, denoise,
-                         null_cond, null_cond, pos_weight, neg_weight, feedback_start, feedback_end, pos_latents, neg_latents)
-
-
-def ksampler_advfabric(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise,
-                       null_pos, null_neg, pos_weight, neg_weight, feedback_start, feedback_end, pos_latents=None, neg_latents=None):
-    """
-    Regular KSampler with all FABRIC inputs
-    """
-    disable_noise = False
-    start_at_step = None
-    end_at_step = None
-    force_full_denoise = False
-    return fabric_sample(model, disable_noise, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, start_at_step, end_at_step, force_full_denoise, denoise,
-                         null_pos, null_neg, pos_weight, neg_weight, feedback_start, feedback_end, pos_latents, neg_latents)
 
 
 def fabric_sample(model, add_noise, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, start_at_step, end_at_step, return_with_leftover_noise, denoise,
                   null_pos, null_neg, pos_weight, neg_weight, feedback_start, feedback_end, pos_latents=None, neg_latents=None):
     """
-    Entry point for FABRIC
+    Advanced KSampler with FABRIC.
     """
-    pos_latents = torch.empty(0, *latent_image['samples'].shape[1:]) if pos_latents is None else pos_latents['samples']
-    neg_latents = torch.empty(0, *latent_image['samples'].shape[1:]) if neg_latents is None else neg_latents['samples']
-    if len(pos_latents) == 0 and len(neg_latents) == 0:
+    non_batch_shape = latent_image['samples'].shape[1:]
+    pos_latents = {"samples": torch.empty(0, *non_batch_shape)} if pos_latents is None else pos_latents
+    neg_latents = {"samples": torch.empty(0, *non_batch_shape)} if neg_latents is None else neg_latents
+    if len(pos_latents['samples']) == 0 and len(neg_latents['samples']) == 0:
         print("[FABRIC] No reference latents found. Defaulting to regular KSampler.")
         return KSamplerAdvanced().sample(model, add_noise, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, start_at_step, end_at_step, return_with_leftover_noise, denoise)
 
-    pos_shape_mismatch = pos_latents.shape[1:] != latent_image['samples'].shape[1:]
-    neg_shape_mismatch = neg_latents.shape[1:] != latent_image['samples'].shape[1:]
+    #
+    # Match latent shapes once instead of resizing every timestep in the sampler
+    #
+    pos_shape_mismatch = pos_latents['samples'].shape[1:] != non_batch_shape
+    neg_shape_mismatch = neg_latents['samples'].shape[1:] != non_batch_shape
     if pos_shape_mismatch or neg_shape_mismatch:
         warnings.warn(
-            f"\n[FABRIC] Latents have different sizes (input: {latent_image['samples'].shape}, pos: {pos_latents.shape}, neg: {neg_latents.shape}). Resizing latents to the same size as input latent. It is recommended to resize the latents beforehand in pixel space or using a model to resize the latent.")
+            f"\n[FABRIC] Latents have different sizes (input: {latent_image['samples'].shape}, pos: {pos_latents['samples'].shape}, neg: {neg_latents['samples'].shape}). Resizing latents to the same size as input latent. It is recommended to resize the latents beforehand in pixel space or using a model to resize the latent.")
         if pos_shape_mismatch:
-            pos_latents = comfy.utils.common_upscale(
-                pos_latents, latent_image['samples'].shape[3], latent_image['samples'].shape[2], "bilinear", "center")
+            pos_latents['samples'] = comfy.utils.common_upscale(
+                pos_latents['samples'], latent_image['samples'].shape[3], latent_image['samples'].shape[2], "bilinear", "center")
         if neg_shape_mismatch:
-            neg_latents = comfy.utils.common_upscale(
-                neg_latents, latent_image['samples'].shape[3], latent_image['samples'].shape[2], "bilinear", "center")
-
-    all_latents = torch.cat([pos_latents, neg_latents], dim=0)
-
-    # If there are no reference latents, default to KSampler
-    if len(all_latents) == 0:
-        print("[FABRIC] No reference latents found. Defaulting to regular KSampler.")
-        return KSamplerAdvanced().sample(model, add_noise, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, start_at_step, end_at_step, return_with_leftover_noise, denoise)
-
-    model_patched = model.clone()
-    device = comfy.model_management.get_torch_device()
-    pos_latents = pos_latents.to(device)
-    neg_latents = neg_latents.to(device)
-    # Scale latents for unit variance
-    pos_latents = model.model.process_latent_in(pos_latents)
-    neg_latents = model.model.process_latent_in(neg_latents)
-    num_pos = len(pos_latents)
-    num_neg = len(neg_latents)
-    all_latents = all_latents.to(device)
-    print(f"[FABRIC] {num_pos} positive latents, {num_neg} negative latents")
+            neg_latents['samples'] = comfy.utils.common_upscale(
+                neg_latents['samples'], latent_image['samples'].shape[3], latent_image['samples'].shape[2], "bilinear", "center")
 
     #
     # Translate start and end step to timesteps
     #
-    timesteps = get_timesteps(model_patched, steps, sampler_name, scheduler, denoise, device)
+    timesteps = get_timesteps(model, steps, sampler_name, scheduler, denoise)
     feedback_start_ts = timesteps[feedback_start]
     feedback_end_ts = timesteps[min(feedback_end, len(timesteps) - 1)]
 
     #
-    # Precompute hidden states
+    # Patch model and sample
     #
-    all_hiddens = {}
-    pos_hiddens = {}
-    neg_hiddens = {}
-    is_compute_hidden_states = True
-
-    def store_hidden_states(q, k, v, extra_options):
-        nonlocal is_compute_hidden_states, all_hiddens
-        if not is_compute_hidden_states:
-            return q, k, v
-
-        idx = extra_options['transformer_index']
-        if idx not in all_hiddens:
-            all_hiddens[idx] = q
-        else:
-            all_hiddens[idx] = torch.cat([all_hiddens[idx], q], dim=0)
-        return q, k, v
-
-    cond_or_uncond = None  # To be set in unet_wrapper
-    is_modified_attn1 = False
-
-    # Create weighted attention patcher
-    attn_patcher = Weighted_Attn_Patcher()
-
-    def modified_attn1(q, k, v, extra_options):
-        # Modify self attention to use the hidden states
-        nonlocal is_modified_attn1, cond_or_uncond, pos_hiddens, neg_hiddens
-        nonlocal num_pos, num_neg
-        nonlocal attn_patcher
-        if not is_modified_attn1:
-            return q, k, v
-
-        idx = extra_options['transformer_index']
-
-        pos_hs = pos_hiddens[idx]
-        neg_hs = neg_hiddens[idx]
-        # Flatten the first dimension into the second dimension ([b, seq, dim] -> [1, b*seq, dim])
-        pos_hs = pos_hs.reshape(1, -1, pos_hs.shape[2])
-        neg_hs = neg_hs.reshape(1, -1, neg_hs.shape[2])
-        # Match the second dimensions
-        largest_dim = max(pos_hs.shape[1], neg_hs.shape[1])
-        largest_shape = (1, largest_dim, pos_hs.shape[2])
-        pos_hs = match_shape(pos_hs, largest_shape)
-        neg_hs = match_shape(neg_hs, largest_shape)
-        # Concat the positive hidden states and negative hidden states to line up with cond and uncond noise
-        cond_uncond_idxs = repeat_list_to_size(cond_or_uncond, q.shape[0])
-        concat_hs = []
-        for x in cond_uncond_idxs:
-            if x == 0:
-                concat_hs.append(pos_hs)
-            else:
-                concat_hs.append(neg_hs)
-        concat_hs = torch.cat(concat_hs, dim=0)
-        # Concat hs to k and v
-        k = torch.cat([k, concat_hs], dim=1)
-        v = torch.cat([v, concat_hs], dim=1)
-        weights = get_weights(pos_weight, neg_weight, q, num_pos, num_neg, cond_uncond_idxs)
-        # Apply weights
-        attn_patcher.patch(weights, extra_options)
-        return q, k, v
-    
-    def after_attn1(out, extra_options):
-        """
-        After self attention, unpatch the attention
-        """
-        nonlocal is_modified_attn1, attn_patcher
-        if is_modified_attn1:
-            attn_patcher.unpatch()
-        return out
-
-    def unet_wrapper(model_func, params):
-        nonlocal is_compute_hidden_states, is_modified_attn1
-        nonlocal pos_latents, neg_latents, all_latents
-        nonlocal pos_hiddens, neg_hiddens, all_hiddens
-        nonlocal cond_or_uncond
-        nonlocal num_pos, num_neg
-        nonlocal model_patched
-        nonlocal feedback_start_ts, feedback_end_ts
-
-        input = params['input']
-        ts = params['timestep']
-        c = params['c']
-
-        # Normal pass if not in feedback range
-        if not (feedback_end_ts.item() <= ts[0].item() <= feedback_start_ts.item()):
-            return model_func(input, ts, **c)
-
-        # Save cond_or_uncond index for attention patch
-        cond_or_uncond = params['cond_or_uncond']
-
-        #
-        # Compute hidden states
-        #
-        # Warn if there are multiple timesteps that are not the same, i.e. different timesteps for different images in the batch
-        if len(ts) > 1:
-            if not torch.all(ts == ts[0]):
-                warnings.warn("[FABRIC] Different timesteps found for different images in the batch. \
-                            Proceeding with the first timestep.")
-
-        current_ts = ts[:1]
-
-        # Noise the reference latents to the current timestep
-        pos_zs = noise_latents(model_patched, pos_latents, current_ts)
-        neg_zs = noise_latents(model_patched, neg_latents, current_ts)
-        all_zs = torch.cat([pos_zs, neg_zs], dim=0)
-
-        #
-        # Make a forward pass to compute hidden states
-        #
-        is_compute_hidden_states = True
-        is_modified_attn1 = False
-        all_hiddens = {}
-        pos_hiddens = {}
-        neg_hiddens = {}
-
-        batch_size = input.shape[0]
-        # Process reference latents in batches
-        c_null_pos = get_null_cond(null_pos, len(pos_zs))
-        c_null_neg = get_null_cond(null_neg, len(neg_zs))
-        c_null = torch.cat([c_null_pos, c_null_neg], dim=0).to(device)
-        for a in range(0, len(all_zs), batch_size):
-            b = a + batch_size
-            batch_latents = all_zs[a:b]
-            c_null_batch = c_null[a:b]
-            c_null_dict = {
-                'c_crossattn': c_null_batch,
-                'transformer_options': c['transformer_options']
-            }
-            batch_ts = broadcast_tensor(current_ts, len(batch_latents))
-            _ = model_func(batch_latents, batch_ts, **c_null_dict)
-
-        for layer_idx, hidden in all_hiddens.items():
-            pos_hiddens[layer_idx] = hidden[:num_pos]
-            neg_hiddens[layer_idx] = hidden[num_pos:]
-
-        # Do the actual forward pass
-        is_compute_hidden_states = False
-        is_modified_attn1 = True
-        out = model_func(input, ts, **c)
-
-        is_compute_hidden_states = False
-        is_modified_attn1 = False
-        return out
-
-    model_patched.set_model_attn1_patch(store_hidden_states)
-    model_patched.set_model_attn1_patch(modified_attn1)
-    model_patched.set_model_attn1_output_patch(after_attn1)
-    model_patched.set_model_unet_function_wrapper(unet_wrapper)
+    fabric_patcher = FABRICPatcher(model, null_pos, null_neg, pos_weight, neg_weight,
+                                   feedback_start, feedback_end, pos_latents, neg_latents)
+    model_patched = fabric_patcher.patch(ts_interval=(feedback_start_ts, feedback_end_ts))
     samples = KSamplerAdvanced().sample(model_patched, add_noise, noise_seed, steps, cfg, sampler_name, scheduler, positive,
                                         negative, latent_image, start_at_step, end_at_step, return_with_leftover_noise, denoise)
     return samples
+
+
+def fabric_patch(model, null_pos, null_neg, pos_weight, neg_weight, pos_latents=None, neg_latents=None):
+    # Cannot use start and end step for patching the model, no sampler information
+    feedback_start = float("inf")
+    feedback_end = 0
+    fabric_patcher = FABRICPatcher(model, null_pos, null_neg, pos_weight, neg_weight,
+                                   feedback_start, feedback_end, pos_latents, neg_latents)
+    model_patched = fabric_patcher.patch()
+    return (model_patched,)
+
+
+class FABRICPatcher:
+
+    def __init__(self, model, null_pos, null_neg, pos_weight, neg_weight, feedback_start, feedback_end, pos_latents=None, neg_latents=None):
+        self.model = model
+        self.null_pos = null_pos
+        self.null_neg = null_neg
+        self.pos_weight = pos_weight
+        self.neg_weight = neg_weight
+        self.feedback_start = feedback_start
+        self.feedback_end = feedback_end
+        self.pos_latents = torch.empty(0) if pos_latents is None else pos_latents["samples"]
+        self.neg_latents = torch.empty(0) if neg_latents is None else neg_latents["samples"]
+
+    def patch(self, ts_interval: tuple = None):
+        """
+        Patch the model to use FABRIC
+        :param ts_interval: Int Tuple of (start, end) timesteps for FABRIC feedback with start > end >= 0
+        :return: Patched model
+        """
+        model_patched = self.model.clone()
+        model_device = comfy.model_management.get_torch_device()
+        num_pos = len(self.pos_latents) if self.pos_latents is not None else 0
+        num_neg = len(self.neg_latents) if self.neg_latents is not None else 0
+        print(f"[FABRIC] {num_pos} positive latents, {num_neg} negative latents")
+
+        if num_pos == 0 and num_neg == 0:
+            print("[FABRIC] No reference latents given when patching model, skipping patch.")
+            return self.model
+
+        #
+        # Precompute hidden states
+        #
+        self.all_hiddens = {}
+        self.pos_hiddens = {}
+        self.neg_hiddens = {}
+        self.is_compute_hidden_states = True
+
+        def store_hidden_states(q, k, v, extra_options):
+            """
+            Store the hidden states of reference latents for the self-attention.
+            """
+            if not self.is_compute_hidden_states:
+                return q, k, v
+
+            idx = extra_options['transformer_index']
+            if idx not in self.all_hiddens:
+                self.all_hiddens[idx] = q
+            else:
+                self.all_hiddens[idx] = torch.cat([self.all_hiddens[idx], q], dim=0)
+            return q, k, v
+
+        self.cond_or_uncond = None  # To be set in unet_wrapper
+        self.is_modified_attn1 = False
+
+        # Create attention patcher
+        self.attn_patcher = Weighted_Attn_Patcher()
+
+        def modified_attn1(q, k, v, extra_options):
+            """
+            Patch the self-attention to use the hidden states.
+            """
+            if not self.is_modified_attn1:
+                return q, k, v
+
+            idx = extra_options['transformer_index']
+
+            pos_hs = self.pos_hiddens[idx]
+            neg_hs = self.neg_hiddens[idx]
+
+            # Flatten the first dimension into the second dimension ([b, seq, dim] -> [1, b*seq, dim])
+            pos_hs = pos_hs.reshape(1, -1, pos_hs.shape[2])
+            neg_hs = neg_hs.reshape(1, -1, neg_hs.shape[2])
+
+            # Match the second dimensions
+            largest_dim = max(pos_hs.shape[1], neg_hs.shape[1])
+            largest_shape = (1, largest_dim, pos_hs.shape[2])
+            pos_hs = match_shape(pos_hs, largest_shape)
+            neg_hs = match_shape(neg_hs, largest_shape)
+
+            # Concat the positive hidden states and negative hidden states to line up with the cond and uncond
+            cond_uncond_idxs = repeat_list_to_size(self.cond_or_uncond, q.shape[0])
+            concat_hs = []
+            for x in cond_uncond_idxs:
+                if x == 0:
+                    concat_hs.append(pos_hs)
+                else:
+                    concat_hs.append(neg_hs)
+            concat_hs = torch.cat(concat_hs, dim=0)
+
+            # Concat hs to k and v
+            k = torch.cat([k, concat_hs], dim=1)
+            v = torch.cat([v, concat_hs], dim=1)
+
+            # Apply weights
+            weights = get_weights(self.pos_weight, self.neg_weight, q, num_pos, num_neg, cond_uncond_idxs)
+            self.attn_patcher.patch(weights, extra_options)
+            return q, k, v
+
+        def after_attn1(out, extra_options):
+            """
+            After self attention, undo the weighted attention patch.
+            """
+            if self.is_modified_attn1:
+                self.attn_patcher.unpatch()
+            return out
+
+        def unet_wrapper(model_func, params):
+            """
+            Wrapper for the unet to compute hidden states and patch the self-attention.
+            """
+            input = params['input']
+            ts = params['timestep']
+            c = params['c']
+
+            non_batch_shape = input.shape[1:]
+
+            # Normal pass if not in feedback range
+            if ts_interval is not None:
+                ts_start, ts_end = ts_interval
+                if not (ts_end < ts[0].item() <= ts_start):
+                    return model_func(input, ts, **c)
+
+            # Save cond_or_uncond index for attention patch
+            self.cond_or_uncond = params['cond_or_uncond']
+
+            # Expand empty latents to match input size
+            pos_lats = self.pos_latents.to(model_device)
+            neg_lats = self.neg_latents.to(model_device)
+            if pos_lats.shape[0] == 0:
+                pos_lats = pos_lats.view(0, 1, 1, 1).expand(0, *non_batch_shape)
+            if neg_lats.shape[0] == 0:
+                neg_lats = neg_lats.view(0, 1, 1, 1).expand(0, *non_batch_shape)
+
+            # Prepare latents for unet
+            pos_lats = self.model.model.process_latent_in(pos_lats)
+            neg_lats = self.model.model.process_latent_in(neg_lats)
+
+            #
+            # Compute hidden states
+            #
+
+            # Warn if there are multiple timesteps that are not the same, i.e. different timesteps for different images in the batch
+            if len(ts) > 1:
+                if not torch.all(ts == ts[0]):
+                    warnings.warn(
+                        "[FABRIC] Different timesteps found for different images in the batch. Proceeding with the first timestep.")
+
+            current_ts = ts[:1]
+
+            # Resize latents to match input latent size
+            pos_shape_mismatch = pos_lats.shape[1:] != non_batch_shape
+            neg_shape_mismatch = neg_lats.shape[1:] != non_batch_shape
+            if pos_shape_mismatch or neg_shape_mismatch:
+                warnings.warn(
+                    f"\n[FABRIC] Latents have different sizes (input: {input.shape}, pos: {pos_lats.shape}, neg: {neg_lats.shape}). Resizing latents to the same size as input latent. It is recommended to resize the latents beforehand in pixel space or use a model to resize the latent.")
+                if pos_shape_mismatch:
+                    pos_lats = comfy.utils.common_upscale(
+                        pos_lats, input.shape[3], input.shape[2], "bilinear", "center")
+                if neg_shape_mismatch:
+                    neg_lats = comfy.utils.common_upscale(
+                        neg_lats, input.shape[3], input.shape[2], "bilinear", "center")
+
+            # Noise the reference latents to the current timestep
+            pos_zs = noise_latents(model_patched, pos_lats, current_ts)
+            neg_zs = noise_latents(model_patched, neg_lats, current_ts)
+            all_zs = torch.cat([pos_zs, neg_zs], dim=0)
+
+            # Make a forward pass to compute hidden states
+            self.is_compute_hidden_states = True
+            self.is_modified_attn1 = False
+
+            self.all_hiddens = {}
+            self.pos_hiddens = {}
+            self.neg_hiddens = {}
+
+            # Process reference latents in batches
+            batch_size = input.shape[0]
+            c_null_pos = get_null_cond(self.null_pos, len(pos_zs))
+            c_null_neg = get_null_cond(self.null_neg, len(neg_zs))
+            c_null = torch.cat([c_null_pos, c_null_neg], dim=0).to(model_device)
+            for a in range(0, len(all_zs), batch_size):
+                b = a + batch_size
+                batch_latents = all_zs[a:b]
+                c_null_batch = c_null[a:b]
+                c_null_dict = {
+                    'c_crossattn': c_null_batch,
+                    'transformer_options': c['transformer_options']
+                }
+                batch_ts = broadcast_tensor(current_ts, len(batch_latents))
+                # Pass the reference latents and call store_hidden_states for each block
+                _ = model_func(batch_latents, batch_ts, **c_null_dict)
+
+            for layer_idx, hidden in self.all_hiddens.items():
+                self.pos_hiddens[layer_idx] = hidden[:num_pos]
+                self.neg_hiddens[layer_idx] = hidden[num_pos:]
+
+            # Do the actual forward pass
+            self.is_compute_hidden_states = False
+            self.is_modified_attn1 = True
+            # modified_attn1 and after_attn1 is called for each block
+            out = model_func(input, ts, **c)
+
+            # Reset flags
+            self.is_compute_hidden_states = False
+            self.is_modified_attn1 = False
+            return out
+
+        model_patched.set_model_attn1_patch(store_hidden_states)
+        model_patched.set_model_attn1_patch(modified_attn1)
+        model_patched.set_model_attn1_output_patch(after_attn1)
+        model_patched.set_model_unet_function_wrapper(unet_wrapper)
+        return model_patched
 
 
 def get_weights(pos_weight, neg_weight, q, num_pos, num_neg, cond_uncond_idxs):

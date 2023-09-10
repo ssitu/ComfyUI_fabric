@@ -20,12 +20,14 @@ git clone https://github.com/ssitu/ComfyUI_fabric
 
 Nodes can be found in the node menu under `FABRIC/`:
 
-| Node                       | Description                                                                                                            |
-|----------------------------|------------------------------------------------------------------------------------------------------------------------|
-| KSampler With FABRIC       | Has the same inputs as a KSampler but with full FABRIC inputs.                                                         |
-| KSampler FABRIC (Advanced) | Has the same inputs as an Advanced KSampler but with full FABRIC inputs.                                               |
-| KSampler FABRIC (Simple)   | Same inputs of a KSampler with the simplified (intended) FABRIC inputs.                                                |
-| Batch Latents              | Helper node for adding two latents together in a batch. Useful for using multiple positive/negative latents in FABRIC. |
+| Node                          | Description                                                                                                            |
+|-------------------------------|------------------------------------------------------------------------------------------------------------------------|
+| FABRIC Patch Model            | Patch a model to use FABRIC so you can use it in any sampler node.                                                     |
+| FABRIC Patch Model (Advanced) | Same as the basic model patcher but with the null_pos and null_neg inputs instead of a clip input.                     |
+| KSampler FABRIC               | Has the same inputs as a KSampler but with full FABRIC inputs.                                                         |
+| KSampler FABRIC (Advanced)    | Has the same inputs as an Advanced KSampler but with full FABRIC inputs.                                               |
+| KSampler FABRIC (Simple)      | Same inputs of a KSampler with the simplified (intended) FABRIC inputs.                                                |
+| Batch Latents                 | Helper node for adding two latents together in a batch. Useful for using multiple positive/negative latents in FABRIC. |
 
 ## Parameters' Descriptions
 
@@ -51,5 +53,9 @@ Nodes can be found in the node menu under `FABRIC/`:
 ## Examples
 Round by round feedback:
 ![image](https://github.com/ssitu/ComfyUI_fabric/assets/57548627/5bc67956-f41c-4c50-8641-a0d45347afc6)
+
+FABRIC patch model:
+![image](https://github.com/ssitu/ComfyUI_fabric/assets/57548627/24eadcd1-f815-45a8-be18-a54ed17d705b)
+
 
 

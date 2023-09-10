@@ -9,7 +9,7 @@ SD Web UI Extension: https://github.com/dvruette/sd-webui-fabric
 
 ## Installation
 
-This has been tested for ComfyUI for the following commit: [1938f5c5fe479996802c46d5c2233887e3598a40](https://github.com/comfyanonymous/ComfyUI/commit/1938f5c5fe479996802c46d5c2233887e3598a40)
+This has been tested for ComfyUI for the following commit: [07691e80c3bf9be16c629169e259105ca5327bf0](https://github.com/comfyanonymous/ComfyUI/commit/07691e80c3bf9be16c629169e259105ca5327bf0)
 
 Navigate to `ComfyUI/custom_nodes/` and run the following command:
 ```

@@ -49,6 +49,7 @@ Nodes can be found in the node menu under `FABRIC/`:
 * Pay attention to the pos/neg weights. The default value of 1.0 is probably too high in most cases.
 * The researchers recommend to only apply feedback to the first half of the denoising steps.
 * If you are having out of memory errors, try switching cross attention methods or use a smaller batch of positive/negative latents.
+* If you are having OOM errors with pytorch cross attention, you can try the nightly version of pytorch which has implemented better memory efficiency.
 
 ## Examples
 Round by round feedback:

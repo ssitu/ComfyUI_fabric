@@ -198,9 +198,9 @@ class LatentBatch:
         if lat1.shape[1:] != lat2.shape[1:]:
             warnings.warn("Latent shapes do not match, resizing latent2 to match latent1")
             lat2 = comfy.utils.common_upscale(lat2, lat1.shape[3], lat1.shape[2], "bilinear", "center")
-        result = torch.cat((lat1, lat2), dim=0)
-        latent1["samples"] = result
-        return (latent1,)
+        result = latent1.copy()
+        result["samples"] = torch.cat((lat1, lat2), dim=0)
+        return (result,)
 
 
 NODE_CLASS_MAPPINGS = {

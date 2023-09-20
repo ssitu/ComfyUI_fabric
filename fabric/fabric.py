@@ -249,6 +249,8 @@ class FABRICPatcher:
                     'c_crossattn': c_null_batch,
                     'transformer_options': c['transformer_options']
                 }
+                if 'c_adm' in c:
+                    c_null_dict['c_adm'] = c['c_adm']
                 batch_ts = broadcast_tensor(current_ts, len(batch_latents))
                 # Pass the reference latents and call store_hidden_states for each block
                 _ = model_func(batch_latents, batch_ts, **c_null_dict)

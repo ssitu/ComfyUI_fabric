@@ -280,6 +280,7 @@ class FABRICPatcher:
 def get_weights(pos_weight, neg_weight, q, num_pos, num_neg, cond_uncond_idxs):
     """
     Prepare weights for the weighted attention
+    :return: Weights of shape [batch_size, nk] where nk is the size of the Key sequence length. batch_size = len(cond_uncond_idxs)
     """
     input_dim = q.shape[1]
     hs_dim = max(num_pos, num_neg) * input_dim

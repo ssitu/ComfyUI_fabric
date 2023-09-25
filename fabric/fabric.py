@@ -162,8 +162,8 @@ class FABRICPatcher:
             concat_hs = torch.cat(concat_hs, dim=0)
 
             # Concat hs to k and v
-            k = torch.cat([k, concat_hs], dim=1)
-            v = torch.cat([v, concat_hs], dim=1)
+            k = torch.cat([k, concat_hs], dim=1).to(q.dtype)
+            v = torch.cat([v, concat_hs], dim=1).to(q.dtype)
 
             # Apply weights
             weights = get_weights(self.pos_weight, self.neg_weight, q, num_pos, num_neg, cond_uncond_idxs)
@@ -331,6 +331,7 @@ def get_null_cond(cond, size):
 def noise_latents(model, latents, ts):
     """
     Noise latents to the current timestep
+    :return: Noised latents on the model device and with the model dtype
     """
     zs = []
     for latent in latents:

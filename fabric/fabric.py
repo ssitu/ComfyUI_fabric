@@ -135,9 +135,9 @@ class FABRICPatcher:
 
             # There should be the same number of pos and neg hidden states as pos and neg latents
             if COND in self.cond_or_uncond:
-                assert pos_hs.shape[0] != num_pos, f"pos_hs batch size ({pos_hs.shape[0]}) != number of pos_latents ({num_pos})"
+                assert pos_hs.shape[0] == num_pos, f"pos_hs batch size ({pos_hs.shape[0]}) != number of pos_latents ({num_pos})"
             if UNCOND in self.cond_or_uncond:
-                assert neg_hs.shape[0] != num_neg, f"neg_hs batch size ({neg_hs.shape[0]}) != number of neg_latents ({num_neg})"
+                assert neg_hs.shape[0] == num_neg, f"neg_hs batch size ({neg_hs.shape[0]}) != number of neg_latents ({num_neg})"
 
             # Flatten the first dimension into the second dimension ([b, seq, dim] -> [1, b*seq, dim])
             pos_hs = pos_hs.reshape(1, -1, pos_hs.shape[2])

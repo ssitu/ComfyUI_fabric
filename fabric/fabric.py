@@ -5,6 +5,9 @@ from nodes import KSamplerAdvanced
 from .unet import q_sample, get_timesteps
 from .weighted_attn import Weighted_Attn_Patcher
 
+COND = 0
+UNCOND = 1
+
 
 def fabric_sample(model, add_noise, noise_seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, start_at_step, end_at_step, return_with_leftover_noise, denoise,
                   null_pos, null_neg, pos_weight, neg_weight, feedback_start, feedback_end, pos_latents=None, neg_latents=None):
@@ -130,6 +133,12 @@ class FABRICPatcher:
             pos_hs = self.pos_hiddens[idx]
             neg_hs = self.neg_hiddens[idx]
 
+            # There should be the same number of pos and neg hidden states as pos and neg latents
+            if COND in self.cond_or_uncond:
+                assert pos_hs.shape[0] != num_pos, f"pos_hs batch size ({pos_hs.shape[0]}) != number of pos_latents ({num_pos})"
+            if UNCOND in self.cond_or_uncond:
+                assert neg_hs.shape[0] != num_neg, f"neg_hs batch size ({neg_hs.shape[0]}) != number of neg_latents ({num_neg})"
+
             # Flatten the first dimension into the second dimension ([b, seq, dim] -> [1, b*seq, dim])
             pos_hs = pos_hs.reshape(1, -1, pos_hs.shape[2])
             neg_hs = neg_hs.reshape(1, -1, neg_hs.shape[2])
@@ -140,11 +149,13 @@ class FABRICPatcher:
             pos_hs = match_shape(pos_hs, largest_shape)
             neg_hs = match_shape(neg_hs, largest_shape)
 
-            # Concat the positive hidden states and negative hidden states to line up with the cond and uncond
+            # Repeat cond_or_uncond to match batch size
             cond_uncond_idxs = repeat_list_to_size(self.cond_or_uncond, q.shape[0])
+
+            # Concat the positive hidden states and negative hidden states to line up with the cond and uncond
             concat_hs = []
             for x in cond_uncond_idxs:
-                if x == 0:
+                if x == COND:
                     concat_hs.append(pos_hs)
                 else:
                     concat_hs.append(neg_hs)
@@ -288,7 +299,7 @@ def get_weights(pos_weight, neg_weight, q, num_pos, num_neg, cond_uncond_idxs):
     batched_weights = []
     for x in cond_uncond_idxs:
         weights = torch.ones(dim)
-        if x == 0:
+        if x == COND:
             weights[input_dim:] = pos_weight
         else:
             weights[input_dim:] = neg_weight

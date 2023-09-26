@@ -9,6 +9,7 @@ class Weighted_Attn_Patcher:
 
         h = extra_options["n_heads"]
         h_dim = extra_options["dim_head"]
+        idx = extra_options["transformer_index"]
 
         if xformers_enabled():
             import xformers
@@ -26,7 +27,7 @@ class Weighted_Attn_Patcher:
                 except Exception as e:
                     print(e)
                     print("[FABRIC] Encountered an exception. If this is not a memory issue, please report this issue.")
-                    print(f"[FABRIC] weights b: {weights.shape[0]}, weights nk: {weights.shape[1]}, nq: {nq}, nk: {nk}, h: {h}, B: {B}")
+                    print(f"[FABRIC] {idx}: weights b: {weights.shape[0]}, weights nk: {weights.shape[1]}, nq: {nq}, nk: {nk}, h: {h}, B: {B}")
                     self.unpatch()
                     raise e
 
@@ -46,7 +47,7 @@ class Weighted_Attn_Patcher:
                 except Exception as e:
                     print(e)
                     print("[FABRIC] Encountered an exception. If this is not a memory issue, please report this issue.")
-                    print(f"[FABRIC] weights b: {weights.shape[0]}, weights nk: {weights.shape[1]}, nq: {nq}, nk: {nk}, h: {h}, bs: {bs}")
+                    print(f"[FABRIC] {idx}: weights b: {weights.shape[0]}, weights nk: {weights.shape[1]}, nq: {nq}, nk: {nk}, h: {h}, bs: {bs}")
                     self.unpatch()
                     raise e
             torch.nn.functional.scaled_dot_product_attention = pt_sdp
@@ -83,7 +84,7 @@ class Weighted_Attn_Patcher:
                 except Exception as e:
                     print(e)
                     print("[FABRIC] Encountered an exception. If this is not a memory issue, please report this issue.")
-                    print(f"[FABRIC] weights b: {weights.shape[0]}, weights nk: {weights.shape[1]}, nq: {nq}, nk: {nk}, h: {h}, B: {B}")
+                    print(f"[FABRIC] {idx}: weights b: {weights.shape[0]}, weights nk: {weights.shape[1]}, nq: {nq}, nk: {nk}, h: {h}, B: {B}")
                     self.unpatch()
                     raise e
             torch.Tensor.softmax = softmax_method

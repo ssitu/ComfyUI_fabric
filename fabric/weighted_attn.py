@@ -114,5 +114,7 @@ def get_attn_bias(weights, shape, dtype):
     min_val = torch.finfo(dtype).min
     attn_bias = weights.log().clamp(min=min_val)
     view_shape = [B, *([1] * (len(shape) - 2)), nk]
-    attn_bias = attn_bias.view(view_shape).expand(shape).to(dtype)
+    attn_bias = attn_bias.view(view_shape)
+    attn_bias = attn_bias.expand(shape)
+    attn_bias = attn_bias.to(dtype)
     return attn_bias

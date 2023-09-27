@@ -27,7 +27,8 @@ class Weighted_Attn_Patcher:
                 except Exception as e:
                     print(e)
                     print("[FABRIC] Encountered an exception. If this is not a memory issue, please report this issue.")
-                    print(f"[FABRIC] {idx}: weights b: {weights.shape[0]}, weights nk: {weights.shape[1]}, nq: {nq}, nk: {nk}, h: {h}, B: {B}")
+                    print(
+                        f"[FABRIC] {idx}: weights b: {weights.shape[0]}, weights nk: {weights.shape[1]}, nq: {nq}, nk: {nk}, h: {h}, B: {B}")
                     self.unpatch()
                     raise e
 
@@ -47,7 +48,8 @@ class Weighted_Attn_Patcher:
                 except Exception as e:
                     print(e)
                     print("[FABRIC] Encountered an exception. If this is not a memory issue, please report this issue.")
-                    print(f"[FABRIC] {idx}: weights b: {weights.shape[0]}, weights nk: {weights.shape[1]}, nq: {nq}, nk: {nk}, h: {h}, bs: {bs}")
+                    print(
+                        f"[FABRIC] {idx}: weights b: {weights.shape[0]}, weights nk: {weights.shape[1]}, nq: {nq}, nk: {nk}, h: {h}, bs: {bs}")
                     self.unpatch()
                     raise e
             torch.nn.functional.scaled_dot_product_attention = pt_sdp
@@ -84,7 +86,8 @@ class Weighted_Attn_Patcher:
                 except Exception as e:
                     print(e)
                     print("[FABRIC] Encountered an exception. If this is not a memory issue, please report this issue.")
-                    print(f"[FABRIC] {idx}: weights b: {weights.shape[0]}, weights nk: {weights.shape[1]}, nq: {nq}, nk: {nk}, h: {h}, B: {B}")
+                    print(
+                        f"[FABRIC] {idx}: weights b: {weights.shape[0]}, weights nk: {weights.shape[1]}, nq: {nq}, nk: {nk}, h: {h}, B: {B}")
                     self.unpatch()
                     raise e
             torch.Tensor.softmax = softmax_method
@@ -114,7 +117,12 @@ def get_attn_bias(weights, shape, dtype):
     min_val = torch.finfo(dtype).min
     attn_bias = weights.log().clamp(min=min_val)
     view_shape = [B, *([1] * (len(shape) - 2)), nk]
-    attn_bias = attn_bias.view(view_shape)
-    attn_bias = attn_bias.expand(shape)
-    attn_bias = attn_bias.to(dtype)
-    return attn_bias
+    try:
+        attn_bias = attn_bias.view(view_shape)
+        attn_bias = attn_bias.expand(shape)
+        attn_bias = attn_bias.to(dtype)
+        return attn_bias
+    except Exception as e:  # For debugging OOM issues
+        print(e)
+        print(f"view_shape: {view_shape}, shape: {shape}, weights.shape: {weights.shape}, dtype: {dtype}, attn_bias.dtype: {attn_bias.dtype}, attn_bias.shape: {attn_bias.shape}")
+        raise e

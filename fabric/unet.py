@@ -19,7 +19,9 @@ def get_timesteps(model, steps, sampler, scheduler, denoise, device="cpu"):
         real_model, steps=steps, device=device, sampler=sampler,
         scheduler=scheduler, denoise=denoise, model_options=model.model_options
     )
-    return sampler.model_wrap.sigma_to_discrete_timestep(sampler.sigmas)
+    model_wrap = comfy.samplers.wrap_model(real_model)
+    return model_wrap.sigma_to_discrete_timestep(sampler.sigmas)
+
 
 
 def forward(model, steps, sampler, scheduler, denoise, device, zs, ts, pos, neg, seed):

@@ -162,8 +162,13 @@ class FABRICPatcher:
             concat_hs = torch.cat(concat_hs, dim=0)
 
             # Concat hs to k and v
-            k = torch.cat([k, concat_hs], dim=1).to(q.dtype)
-            v = torch.cat([v, concat_hs], dim=1).to(q.dtype)
+            k = torch.cat([k, concat_hs], dim=1)
+            v = torch.cat([v, concat_hs], dim=1)
+
+            # Change to model dtype
+            q = q.to(model_patched.model_dtype())
+            k = k.to(model_patched.model_dtype())
+            v = v.to(model_patched.model_dtype())
 
             # Apply weights
             weights = get_weights(self.pos_weight, self.neg_weight, q, num_pos, num_neg, cond_uncond_idxs)
@@ -304,7 +309,7 @@ def get_weights(pos_weight, neg_weight, q, num_pos, num_neg, cond_uncond_idxs):
         else:
             weights[input_dim:] = neg_weight
         batched_weights.append(weights)
-    batched_weights = torch.stack(batched_weights).to(q.device)
+    batched_weights = torch.stack(batched_weights).to(q.device).to(q.dtype)
     return batched_weights
 
 

@@ -1,0 +1,904 @@
+{
+  "last_node_id": 135,
+  "last_link_id": 4816,
+  "nodes": [
+    {
+      "id": 80,
+      "type": "VAEDecode",
+      "pos": [
+        1488,
+        160
+      ],
+      "size": {
+        "0": 140,
+        "1": 46
+      },
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 4815
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 3531,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            3532
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      }
+    },
+    {
+      "id": 63,
+      "type": "LoadImage",
+      "pos": [
+        64,
+        272
+      ],
+      "size": {
+        "0": 226.03688049316406,
+        "1": 322.4206848144531
+      },
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            3509
+          ],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "ComfyUI_00028_.png",
+        "image"
+      ]
+    },
+    {
+      "id": 64,
+      "type": "VAEEncode",
+      "pos": [
+        320,
+        224
+      ],
+      "size": {
+        "0": 140,
+        "1": 46
+      },
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "pixels",
+          "type": "IMAGE",
+          "link": 3509
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 3510,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            4546
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEEncode"
+      }
+    },
+    {
+      "id": 133,
+      "type": "LatentBatch",
+      "pos": [
+        368,
+        416
+      ],
+      "size": {
+        "0": 140,
+        "1": 46
+      },
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "latent1",
+          "type": "LATENT",
+          "link": 4546
+        },
+        {
+          "name": "latent2",
+          "type": "LATENT",
+          "link": 4547,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            4744
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LatentBatch"
+      }
+    },
+    {
+      "id": 132,
+      "type": "VAEEncode",
+      "pos": [
+        320,
+        576
+      ],
+      "size": {
+        "0": 140,
+        "1": 46
+      },
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "pixels",
+          "type": "IMAGE",
+          "link": 4543
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 4542,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            4547
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEEncode"
+      }
+    },
+    {
+      "id": 105,
+      "type": "EmptyLatentImage",
+      "pos": [
+        544,
+        352
+      ],
+      "size": {
+        "0": 210,
+        "1": 106
+      },
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            4814
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmptyLatentImage"
+      },
+      "widgets_values": [
+        512,
+        512,
+        1
+      ]
+    },
+    {
+      "id": 81,
+      "type": "PreviewImage",
+      "pos": [
+        1472,
+        256
+      ],
+      "size": {
+        "0": 525.4810791015625,
+        "1": 554.6636962890625
+      },
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 3532
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      }
+    },
+    {
+      "id": 62,
+      "type": "CheckpointLoaderSimple",
+      "pos": [
+        64,
+        112
+      ],
+      "size": {
+        "0": 210,
+        "1": 98
+      },
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            3507,
+            4492
+          ],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            3508,
+            4807
+          ],
+          "shape": 3,
+          "slot_index": 1
+        },
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            3510,
+            3531,
+            4542
+          ],
+          "shape": 3,
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CheckpointLoaderSimple"
+      },
+      "widgets_values": [
+        "1openjourney2.ckpt"
+      ]
+    },
+    {
+      "id": 73,
+      "type": "CLIPTextEncode",
+      "pos": [
+        544,
+        736
+      ],
+      "size": {
+        "0": 210,
+        "1": 76.00007629394531
+      },
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 4802
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            4811,
+            4813
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "text, watermark"
+      ]
+    },
+    {
+      "id": 74,
+      "type": "Reroute",
+      "pos": [
+        432,
+        688
+      ],
+      "size": [
+        75,
+        26
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 4807,
+          "slot_index": 0
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            4801,
+            4802
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "showOutputText": true,
+        "horizontal": false
+      }
+    },
+    {
+      "id": 72,
+      "type": "CLIPTextEncode",
+      "pos": [
+        544,
+        624
+      ],
+      "size": {
+        "0": 210,
+        "1": 76
+      },
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 4801,
+          "slot_index": 0
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            4810,
+            4812
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "beautiful scenery nature glass bottle landscape, , purple galaxy bottle,"
+      ]
+    },
+    {
+      "id": 130,
+      "type": "Reroute",
+      "pos": [
+        1024,
+        64
+      ],
+      "size": [
+        82,
+        26
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 4492
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            4809
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "showOutputText": true,
+        "horizontal": false
+      }
+    },
+    {
+      "id": 134,
+      "type": "KSamplerAdvanced",
+      "pos": [
+        848,
+        160
+      ],
+      "size": [
+        270.26126617855584,
+        334
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 4816
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 4812,
+          "slot_index": 1
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 4813,
+          "slot_index": 2
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 4814,
+          "slot_index": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            4808
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSamplerAdvanced"
+      },
+      "widgets_values": [
+        "enable",
+        1,
+        "fixed",
+        20,
+        8,
+        "dpmpp_2m",
+        "karras",
+        0,
+        10,
+        "enable"
+      ]
+    },
+    {
+      "id": 135,
+      "type": "KSamplerAdvanced",
+      "pos": [
+        1168,
+        160
+      ],
+      "size": {
+        "0": 270.2612609863281,
+        "1": 334
+      },
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 4809
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 4810,
+          "slot_index": 1
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 4811,
+          "slot_index": 2
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 4808
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            4815
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSamplerAdvanced"
+      },
+      "widgets_values": [
+        "disable",
+        1,
+        "fixed",
+        20,
+        8,
+        "dpmpp_2m",
+        "karras",
+        10,
+        10000,
+        "disable"
+      ]
+    },
+    {
+      "id": 60,
+      "type": "FABRICPatchModel",
+      "pos": [
+        544,
+        160
+      ],
+      "size": {
+        "0": 210,
+        "1": 142
+      },
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 3507,
+          "slot_index": 0
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 3508
+        },
+        {
+          "name": "pos_latents",
+          "type": "LATENT",
+          "link": 4744
+        },
+        {
+          "name": "neg_latents",
+          "type": "LATENT",
+          "link": null,
+          "slot_index": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            4816
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FABRICPatchModel"
+      },
+      "widgets_values": [
+        0.4,
+        1
+      ]
+    },
+    {
+      "id": 131,
+      "type": "LoadImage",
+      "pos": [
+        62,
+        640
+      ],
+      "size": {
+        "0": 226.03688049316406,
+        "1": 322.4206848144531
+      },
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            4543
+          ],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "ComfyUI_00027_.png",
+        "image"
+      ]
+    }
+  ],
+  "links": [
+    [
+      3507,
+      62,
+      0,
+      60,
+      0,
+      "MODEL"
+    ],
+    [
+      3508,
+      62,
+      1,
+      60,
+      1,
+      "CLIP"
+    ],
+    [
+      3509,
+      63,
+      0,
+      64,
+      0,
+      "IMAGE"
+    ],
+    [
+      3510,
+      62,
+      2,
+      64,
+      1,
+      "VAE"
+    ],
+    [
+      3531,
+      62,
+      2,
+      80,
+      1,
+      "VAE"
+    ],
+    [
+      3532,
+      80,
+      0,
+      81,
+      0,
+      "IMAGE"
+    ],
+    [
+      4492,
+      62,
+      0,
+      130,
+      0,
+      "*"
+    ],
+    [
+      4542,
+      62,
+      2,
+      132,
+      1,
+      "VAE"
+    ],
+    [
+      4543,
+      131,
+      0,
+      132,
+      0,
+      "IMAGE"
+    ],
+    [
+      4546,
+      64,
+      0,
+      133,
+      0,
+      "LATENT"
+    ],
+    [
+      4547,
+      132,
+      0,
+      133,
+      1,
+      "LATENT"
+    ],
+    [
+      4744,
+      133,
+      0,
+      60,
+      2,
+      "LATENT"
+    ],
+    [
+      4801,
+      74,
+      0,
+      72,
+      0,
+      "CLIP"
+    ],
+    [
+      4802,
+      74,
+      0,
+      73,
+      0,
+      "CLIP"
+    ],
+    [
+      4807,
+      62,
+      1,
+      74,
+      0,
+      "*"
+    ],
+    [
+      4808,
+      134,
+      0,
+      135,
+      3,
+      "LATENT"
+    ],
+    [
+      4809,
+      130,
+      0,
+      135,
+      0,
+      "MODEL"
+    ],
+    [
+      4810,
+      72,
+      0,
+      135,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      4811,
+      73,
+      0,
+      135,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      4812,
+      72,
+      0,
+      134,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      4813,
+      73,
+      0,
+      134,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      4814,
+      105,
+      0,
+      134,
+      3,
+      "LATENT"
+    ],
+    [
+      4815,
+      135,
+      0,
+      80,
+      0,
+      "LATENT"
+    ],
+    [
+      4816,
+      60,
+      0,
+      134,
+      0,
+      "MODEL"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

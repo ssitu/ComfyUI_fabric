@@ -193,6 +193,11 @@ class LatentBatch:
     CATEGORY = "FABRIC"
 
     def batch(self, latent1, latent2):
+        if (latent1 is None):
+            return (latent2,)
+        if (latent2 is None):
+            return (latent1,)
+        
         lat1 = latent1["samples"]
         lat2 = latent2["samples"]
         if lat1.shape[1:] != lat2.shape[1:]:

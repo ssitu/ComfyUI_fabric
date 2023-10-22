@@ -257,6 +257,11 @@ class FABRICPatcher:
             c_null_pos = get_null_cond(self.null_pos, len(pos_zs))
             c_null_neg = get_null_cond(self.null_neg, len(neg_zs))
             c_null = torch.cat([c_null_pos, c_null_neg], dim=0).to(model_device)
+            # TODO: Probably shouldn't be doing this
+            c_adm = None
+            if 'c_adm' in c:
+                c_adm = c['c_adm']
+                print(f"[FABRIC] Found c_adm with shape {c_adm.shape}.")
             for a in range(0, len(all_zs), batch_size):
                 b = a + batch_size
                 batch_latents = all_zs[a:b]
@@ -265,8 +270,8 @@ class FABRICPatcher:
                     'c_crossattn': c_null_batch,
                     'transformer_options': c['transformer_options']
                 }
-                if 'c_adm' in c:
-                    c_null_dict['c_adm'] = c['c_adm']
+                if c_adm is not None:
+                    c_null_dict['c_adm'] = c_adm[a:b]
                 batch_ts = broadcast_tensor(current_ts, len(batch_latents))
                 # Pass the reference latents and call store_hidden_states for each block
                 _ = model_func(batch_latents, batch_ts, **c_null_dict)

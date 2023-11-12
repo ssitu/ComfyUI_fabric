@@ -20,7 +20,7 @@ def get_timesteps(model, steps, sampler, scheduler, denoise, device="cpu"):
         scheduler=scheduler, denoise=denoise, model_options=model.model_options
     )
     model_wrap = comfy.samplers.wrap_model(real_model)
-    return model_wrap.sigma_to_discrete_timestep(sampler.sigmas)
+    return model_wrap.inner_model.model_sampling.timestep(sampler.sigmas)
 
 
 

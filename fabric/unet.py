@@ -1,16 +1,37 @@
 import torch
+import numpy as np
 import comfy
+from comfy.ldm.modules.diffusionmodules.util import make_beta_schedule
 from comfy.ldm.modules.diffusionmodules.util import extract_into_tensor
 from comfy.ldm.modules.attention import SpatialTransformer
 
 
-def q_sample(model, x_start, t):
-    noise = torch.randn_like(x_start)
-    alphas_cumprod = model.model.get_buffer('alphas_cumprod')
-    sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod)
-    sqrt_one_minus_alphas_cumprod = torch.sqrt(1. - alphas_cumprod)
-    return (extract_into_tensor(sqrt_alphas_cumprod, t, x_start.shape) * x_start +
-            extract_into_tensor(sqrt_one_minus_alphas_cumprod, t, x_start.shape) * noise)
+def q_sample(model, x_start, timestep, ts_interval):
+    noise = None
+
+    ts_start, ts_end = ts_interval
+    num_ts = max(ts_start - ts_end, 0)
+    
+    config = model.model.model_config
+    model_wrap = comfy.samplers.wrap_model(model.model)
+    beta_schedule = "linear"
+    if config is not None:
+        beta_schedule = config.beta_schedule
+
+    # Calc betas and alphas_cumprod
+    betas = make_beta_schedule(beta_schedule, num_ts)
+
+    alphas = 1. - betas
+    alphas_cumprod = torch.tensor(np.cumprod(alphas, axis=0), dtype=torch.float32)
+    
+    device = x_start.device
+
+    timestep = timestep.long()
+    sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod).to(device)
+    sqrt_one_minus_alphas_cumprod = torch.sqrt(1. - alphas_cumprod).to(device)
+    noise = torch.randn_like(x_start).to(device)
+    return (extract_into_tensor(sqrt_alphas_cumprod, timestep, x_start.shape) * x_start +
+            extract_into_tensor(sqrt_one_minus_alphas_cumprod, timestep, x_start.shape) * noise)
 
 
 def get_timesteps(model, steps, sampler, scheduler, denoise, device="cpu"):

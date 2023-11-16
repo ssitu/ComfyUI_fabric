@@ -4,7 +4,7 @@ import comfy
 from comfy.ldm.modules.diffusionmodules.util import make_beta_schedule
 from comfy.ldm.modules.diffusionmodules.util import extract_into_tensor
 from comfy.ldm.modules.attention import SpatialTransformer
-
+import math
 
 def q_sample(model, x_start, timestep, ts_interval):
     noise = None
@@ -40,8 +40,20 @@ def get_timesteps(model, steps, sampler, scheduler, denoise, device="cpu"):
         real_model, steps=steps, device=device, sampler=sampler,
         scheduler=scheduler, denoise=denoise, model_options=model.model_options
     )
+
     model_wrap = comfy.samplers.wrap_model(real_model)
-    return model_wrap.inner_model.model_sampling.timestep(sampler.sigmas)
+    sampling = model_wrap.inner_model.model_sampling
+    # LCM
+    if str(sampling) == "ModelSamplingAdvanced()":
+        timesteps = sampling.timestep(sampler.sigmas)
+        
+        step_size = torch.round(timesteps[0] / (len(timesteps) - 2))
+        # Attempt normalization (rounding errors, but works >_<)
+        for i in range(1, len(timesteps)):
+            timesteps[i] = max(math.ceil(timesteps[0] - (i * step_size)), 0)
+        return timesteps
+
+    return sampling.timestep(sampler.sigmas)
 
 
 

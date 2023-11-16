@@ -240,8 +240,8 @@ class FABRICPatcher:
                         neg_lats, input.shape[3], input.shape[2], "bilinear", "center")
 
             # Noise the reference latents to the current timestep
-            pos_zs = noise_latents(model_patched, pos_lats, current_ts)
-            neg_zs = noise_latents(model_patched, neg_lats, current_ts)
+            pos_zs = noise_latents(model_patched, pos_lats, current_ts, ts_interval)
+            neg_zs = noise_latents(model_patched, neg_lats, current_ts, ts_interval)
             all_zs = torch.cat([pos_zs, neg_zs], dim=0)
 
             # Make a forward pass to compute hidden states
@@ -338,14 +338,14 @@ def get_null_cond(cond, size):
     return c_crossattn
 
 
-def noise_latents(model, latents, ts):
+def noise_latents(model, latents, ts, ts_interval):
     """
     Noise latents to the current timestep
     :return: Noised latents on the model device and with the model dtype
     """
     zs = []
     for latent in latents:
-        z_ref = q_sample(model, latent.unsqueeze(0), ts)
+        z_ref = q_sample(model, latent.unsqueeze(0), ts, ts_interval)
         zs.append(z_ref)
     if len(zs) == 0:
         return latents

@@ -2,7 +2,7 @@ import warnings
 import torch
 import comfy
 from nodes import KSamplerAdvanced
-from .unet import q_sample, get_timesteps
+from .unet import q_sample, get_timesteps, sigma_to_ts
 from .weighted_attn import Weighted_Attn_Patcher
 
 COND = 0
@@ -196,7 +196,9 @@ class FABRICPatcher:
             # Normal pass if not in feedback range
             if ts_interval is not None:
                 ts_start, ts_end = ts_interval
-                if not (ts_end < ts[0].item() <= ts_start):
+                actual_ts = sigma_to_ts(model_patched, ts[0]).item()
+                if not (ts_end < actual_ts <= ts_start):
+                    print(f"[FABRIC] {actual_ts} Not in feedback range ({ts_start}, {ts_end}), skipping FABRIC patch.")
                     return model_func(input, ts, **c)
 
             # Save cond_or_uncond index for attention patch

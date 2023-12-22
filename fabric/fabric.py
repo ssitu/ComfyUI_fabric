@@ -189,6 +189,9 @@ class FABRICPatcher:
             """
             input = params['input']
             ts = params['timestep']
+            print(f"[FABRIC] ts: {ts}")
+            actual_ts = sigma_to_ts(model_patched, ts)
+            print(f"[FABRIC] actual_ts: {actual_ts}")
             c = params['c']
 
             non_batch_shape = input.shape[1:]
@@ -196,9 +199,9 @@ class FABRICPatcher:
             # Normal pass if not in feedback range
             if ts_interval is not None:
                 ts_start, ts_end = ts_interval
-                actual_ts = sigma_to_ts(model_patched, ts[0]).item()
-                if not (ts_end < actual_ts <= ts_start):
-                    print(f"[FABRIC] {actual_ts} Not in feedback range ({ts_start}, {ts_end}), skipping FABRIC patch.")
+                if not (ts_end < actual_ts[0].item() <= ts_start):
+                    print(f"[FABRIC] {actual_ts[0].item()} Not in feedback range ({ts_start}, {ts_end}), skipping FABRIC patch.")
+                    print("[FABRIC] Forward1: ts", ts)
                     return model_func(input, ts, **c)
 
             # Save cond_or_uncond index for attention patch
@@ -227,6 +230,7 @@ class FABRICPatcher:
                         "[FABRIC] Different timesteps found for different images in the batch. Proceeding with the first timestep.")
 
             current_ts = ts[:1]
+            current_actual_ts = actual_ts[:1]
 
             # Resize latents to match input latent size
             pos_shape_mismatch = pos_lats.shape[1:] != non_batch_shape
@@ -242,8 +246,9 @@ class FABRICPatcher:
                         neg_lats, input.shape[3], input.shape[2], "bilinear", "center")
 
             # Noise the reference latents to the current timestep
-            pos_zs = noise_latents(model_patched, pos_lats, current_ts, ts_interval)
-            neg_zs = noise_latents(model_patched, neg_lats, current_ts, ts_interval)
+            print("[FABRIC] Noising reference latents to current_actual_ts", current_actual_ts, "with ts_interval", ts_interval)
+            pos_zs = noise_latents(model_patched, pos_lats, current_actual_ts, ts_interval)
+            neg_zs = noise_latents(model_patched, neg_lats, current_actual_ts, ts_interval)
             all_zs = torch.cat([pos_zs, neg_zs], dim=0)
 
             # Make a forward pass to compute hidden states

@@ -2,7 +2,7 @@ import warnings
 import torch
 import comfy
 from nodes import KSamplerAdvanced
-from .unet import q_sample, get_timesteps, sigma_to_ts
+from .unet import q_sample, get_timesteps, sigma_to_t, undo_scaling
 from .weighted_attn import Weighted_Attn_Patcher
 
 COND = 0
@@ -188,10 +188,8 @@ class FABRICPatcher:
             Wrapper for the unet to compute hidden states and patch the self-attention.
             """
             input = params['input']
-            ts = params['timestep']
-            print(f"[FABRIC] ts: {ts}")
-            actual_ts = sigma_to_ts(model_patched, ts)
-            print(f"[FABRIC] actual_ts: {actual_ts}")
+            sigma = params['timestep']
+            ts = sigma_to_t(model_patched, sigma)
             c = params['c']
 
             non_batch_shape = input.shape[1:]
@@ -199,10 +197,8 @@ class FABRICPatcher:
             # Normal pass if not in feedback range
             if ts_interval is not None:
                 ts_start, ts_end = ts_interval
-                if not (ts_end < actual_ts[0].item() <= ts_start):
-                    print(f"[FABRIC] {actual_ts[0].item()} Not in feedback range ({ts_start}, {ts_end}), skipping FABRIC patch.")
-                    print("[FABRIC] Forward1: ts", ts)
-                    return model_func(input, ts, **c)
+                if not (ts_end < ts[0].item() <= ts_start):
+                    return model_func(input, sigma, **c)
 
             # Save cond_or_uncond index for attention patch
             self.cond_or_uncond = params['cond_or_uncond']
@@ -216,21 +212,21 @@ class FABRICPatcher:
                 neg_lats = neg_lats.view(0, 1, 1, 1).expand(0, *non_batch_shape)
 
             # Prepare latents for unet
-            pos_lats = self.model.model.process_latent_in(pos_lats)
-            neg_lats = self.model.model.process_latent_in(neg_lats)
+            pos_lats = model_patched.model.process_latent_in(pos_lats)
+            neg_lats = model_patched.model.process_latent_in(neg_lats)
 
             #
             # Compute hidden states
             #
 
             # Warn if there are multiple timesteps that are not the same, i.e. different timesteps for different images in the batch
-            if len(ts) > 1:
-                if not torch.all(ts == ts[0]):
+            if len(sigma) > 1:
+                if not torch.all(sigma == sigma[0]):
                     warnings.warn(
                         "[FABRIC] Different timesteps found for different images in the batch. Proceeding with the first timestep.")
 
+            current_sigma = sigma[:1]
             current_ts = ts[:1]
-            current_actual_ts = actual_ts[:1]
 
             # Resize latents to match input latent size
             pos_shape_mismatch = pos_lats.shape[1:] != non_batch_shape
@@ -246,9 +242,8 @@ class FABRICPatcher:
                         neg_lats, input.shape[3], input.shape[2], "bilinear", "center")
 
             # Noise the reference latents to the current timestep
-            print("[FABRIC] Noising reference latents to current_actual_ts", current_actual_ts, "with ts_interval", ts_interval)
-            pos_zs = noise_latents(model_patched, pos_lats, current_actual_ts, ts_interval)
-            neg_zs = noise_latents(model_patched, neg_lats, current_actual_ts, ts_interval)
+            pos_zs = noise_latents(model_patched, pos_lats, current_ts)
+            neg_zs = noise_latents(model_patched, neg_lats, current_ts)
             all_zs = torch.cat([pos_zs, neg_zs], dim=0)
 
             # Make a forward pass to compute hidden states
@@ -279,7 +274,9 @@ class FABRICPatcher:
                 }
                 if c_adm is not None:
                     c_null_dict['c_adm'] = c_adm[a:b]
-                batch_ts = broadcast_tensor(current_ts, len(batch_latents))
+                batch_ts = broadcast_tensor(current_sigma, len(batch_latents))
+                # Undo the scaling done in BaseModel.apply_model with EPS.calculate_input
+                batch_latents = undo_scaling(model_patched, current_sigma, batch_latents)
                 # Pass the reference latents and call store_hidden_states for each block
                 _ = model_func(batch_latents, batch_ts, **c_null_dict)
 
@@ -291,7 +288,7 @@ class FABRICPatcher:
             self.is_compute_hidden_states = False
             self.is_modified_attn1 = True
             # modified_attn1 and after_attn1 is called for each block
-            out = model_func(input, ts, **c)
+            out = model_func(input, sigma, **c)
 
             # Reset flags
             self.is_compute_hidden_states = False
@@ -345,14 +342,14 @@ def get_null_cond(cond, size):
     return c_crossattn
 
 
-def noise_latents(model, latents, ts, ts_interval):
+def noise_latents(model, latents, ts):
     """
     Noise latents to the current timestep
     :return: Noised latents on the model device and with the model dtype
     """
     zs = []
     for latent in latents:
-        z_ref = q_sample(model, latent.unsqueeze(0), ts, ts_interval)
+        z_ref = q_sample(model, latent.unsqueeze(0), ts)
         zs.append(z_ref)
     if len(zs) == 0:
         return latents

@@ -1,6 +1,6 @@
 {
-  "last_node_id": 133,
-  "last_link_id": 4801,
+  "last_node_id": 135,
+  "last_link_id": 4808,
   "nodes": [
     {
       "id": 7,
@@ -42,44 +42,6 @@
       ],
       "properties": {
         "Node name for S&R": "VAEDecode"
-      }
-    },
-    {
-      "id": 26,
-      "type": "Reroute",
-      "pos": [
-        480,
-        674
-      ],
-      "size": [
-        90.4,
-        26
-      ],
-      "flags": {},
-      "order": 6,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "",
-          "type": "*",
-          "link": 3320
-        }
-      ],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "links": [
-            155,
-            156
-          ],
-          "slot_index": 0,
-          "label": "Round1"
-        }
-      ],
-      "properties": {
-        "showOutputText": true,
-        "horizontal": false
       }
     },
     {
@@ -125,211 +87,6 @@
       }
     },
     {
-      "id": 25,
-      "type": "Reroute",
-      "pos": [
-        769,
-        995
-      ],
-      "size": [
-        90.4,
-        26
-      ],
-      "flags": {},
-      "order": 12,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "",
-          "type": "*",
-          "link": 3321
-        }
-      ],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "links": [
-            158,
-            159
-          ],
-          "slot_index": 0,
-          "label": "Round2"
-        }
-      ],
-      "properties": {
-        "showOutputText": true,
-        "horizontal": false
-      }
-    },
-    {
-      "id": 24,
-      "type": "LatentFromBatch",
-      "pos": [
-        917,
-        952
-      ],
-      "size": {
-        "0": 210,
-        "1": 82
-      },
-      "flags": {},
-      "order": 14,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "samples",
-          "type": "LATENT",
-          "link": 158
-        }
-      ],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "links": [
-            469
-          ],
-          "shape": 3,
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LatentFromBatch"
-      },
-      "widgets_values": [
-        0,
-        1
-      ]
-    },
-    {
-      "id": 27,
-      "type": "LatentFromBatch",
-      "pos": [
-        913,
-        1080
-      ],
-      "size": {
-        "0": 210,
-        "1": 82
-      },
-      "flags": {},
-      "order": 15,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "samples",
-          "type": "LATENT",
-          "link": 159,
-          "slot_index": 0
-        }
-      ],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "links": [
-            471
-          ],
-          "shape": 3,
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LatentFromBatch"
-      },
-      "widgets_values": [
-        1,
-        1
-      ]
-    },
-    {
-      "id": 31,
-      "type": "LatentBatch",
-      "pos": [
-        1144,
-        908
-      ],
-      "size": {
-        "0": 140,
-        "1": 46
-      },
-      "flags": {},
-      "order": 16,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "latent1",
-          "type": "LATENT",
-          "link": 450,
-          "slot_index": 0
-        },
-        {
-          "name": "latent2",
-          "type": "LATENT",
-          "link": 469,
-          "slot_index": 1
-        }
-      ],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "links": [
-            470
-          ],
-          "shape": 3,
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LatentBatch"
-      }
-    },
-    {
-      "id": 34,
-      "type": "LatentBatch",
-      "pos": [
-        1302,
-        999
-      ],
-      "size": {
-        "0": 140,
-        "1": 46
-      },
-      "flags": {},
-      "order": 17,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "latent1",
-          "type": "LATENT",
-          "link": 470,
-          "slot_index": 0
-        },
-        {
-          "name": "latent2",
-          "type": "LATENT",
-          "link": 471,
-          "slot_index": 1
-        }
-      ],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "links": [
-            3270
-          ],
-          "shape": 3,
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LatentBatch"
-      }
-    },
-    {
       "id": 32,
       "type": "VAEDecode",
       "pos": [
@@ -370,88 +127,6 @@
       "properties": {
         "Node name for S&R": "VAEDecode"
       }
-    },
-    {
-      "id": 17,
-      "type": "LatentFromBatch",
-      "pos": [
-        619,
-        668
-      ],
-      "size": {
-        "0": 210,
-        "1": 82
-      },
-      "flags": {},
-      "order": 8,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "samples",
-          "type": "LATENT",
-          "link": 155
-        }
-      ],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "links": [
-            450,
-            3260
-          ],
-          "shape": 3,
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LatentFromBatch"
-      },
-      "widgets_values": [
-        0,
-        1
-      ]
-    },
-    {
-      "id": 19,
-      "type": "LatentFromBatch",
-      "pos": [
-        607,
-        811
-      ],
-      "size": {
-        "0": 210,
-        "1": 82
-      },
-      "flags": {},
-      "order": 9,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "samples",
-          "type": "LATENT",
-          "link": 156
-        }
-      ],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "links": [
-            3261,
-            3272
-          ],
-          "shape": 3,
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LatentFromBatch"
-      },
-      "widgets_values": [
-        1,
-        1
-      ]
     },
     {
       "id": 2,
@@ -510,317 +185,6 @@
       "widgets_values": [
         "1openjourney2.ckpt"
       ]
-    },
-    {
-      "id": 57,
-      "type": "KSamplerFABRIC",
-      "pos": [
-        969,
-        435
-      ],
-      "size": {
-        "0": 210,
-        "1": 394
-      },
-      "flags": {},
-      "order": 10,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 3254
-        },
-        {
-          "name": "positive",
-          "type": "CONDITIONING",
-          "link": 4796
-        },
-        {
-          "name": "negative",
-          "type": "CONDITIONING",
-          "link": 4800
-        },
-        {
-          "name": "latent_image",
-          "type": "LATENT",
-          "link": 3257
-        },
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 3258
-        },
-        {
-          "name": "pos_latents",
-          "type": "LATENT",
-          "link": 3260
-        },
-        {
-          "name": "neg_latents",
-          "type": "LATENT",
-          "link": 3261
-        }
-      ],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "links": [
-            3259,
-            3321
-          ],
-          "shape": 3,
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "KSamplerFABRIC"
-      },
-      "widgets_values": [
-        1,
-        "fixed",
-        20,
-        8,
-        "dpmpp_2m",
-        "karras",
-        1,
-        0.5,
-        0.25,
-        0.5
-      ]
-    },
-    {
-      "id": 56,
-      "type": "KSamplerFABRIC",
-      "pos": [
-        668,
-        119
-      ],
-      "size": {
-        "0": 210,
-        "1": 394
-      },
-      "flags": {},
-      "order": 4,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 3247
-        },
-        {
-          "name": "positive",
-          "type": "CONDITIONING",
-          "link": 4795
-        },
-        {
-          "name": "negative",
-          "type": "CONDITIONING",
-          "link": 4799
-        },
-        {
-          "name": "latent_image",
-          "type": "LATENT",
-          "link": 3250
-        },
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 3251
-        },
-        {
-          "name": "pos_latents",
-          "type": "LATENT",
-          "link": null
-        },
-        {
-          "name": "neg_latents",
-          "type": "LATENT",
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "links": [
-            3253,
-            3320
-          ],
-          "shape": 3,
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "KSamplerFABRIC"
-      },
-      "widgets_values": [
-        1,
-        "fixed",
-        20,
-        8,
-        "dpmpp_2m",
-        "karras",
-        1,
-        0.5,
-        0.25,
-        0.5
-      ]
-    },
-    {
-      "id": 58,
-      "type": "KSamplerFABRIC",
-      "pos": [
-        1497,
-        752
-      ],
-      "size": {
-        "0": 210,
-        "1": 394
-      },
-      "flags": {},
-      "order": 18,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 3262
-        },
-        {
-          "name": "positive",
-          "type": "CONDITIONING",
-          "link": 4797
-        },
-        {
-          "name": "negative",
-          "type": "CONDITIONING",
-          "link": 4801
-        },
-        {
-          "name": "latent_image",
-          "type": "LATENT",
-          "link": 3271
-        },
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 3266
-        },
-        {
-          "name": "pos_latents",
-          "type": "LATENT",
-          "link": 3270
-        },
-        {
-          "name": "neg_latents",
-          "type": "LATENT",
-          "link": 3272
-        }
-      ],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "links": [
-            3273
-          ],
-          "shape": 3,
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "KSamplerFABRIC"
-      },
-      "widgets_values": [
-        1,
-        "fixed",
-        20,
-        8,
-        "dpmpp_2m",
-        "karras",
-        1,
-        0.5,
-        0.25,
-        0.5
-      ]
-    },
-    {
-      "id": 12,
-      "type": "PreviewImage",
-      "pos": [
-        1087,
-        124
-      ],
-      "size": {
-        "0": 413.17083740234375,
-        "1": 246
-      },
-      "flags": {},
-      "order": 7,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 79
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "PreviewImage"
-      }
-    },
-    {
-      "id": 21,
-      "type": "PreviewImage",
-      "pos": [
-        1426,
-        426
-      ],
-      "size": {
-        "0": 464.48895263671875,
-        "1": 256.6249084472656
-      },
-      "flags": {},
-      "order": 13,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 204
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "PreviewImage"
-      }
-    },
-    {
-      "id": 33,
-      "type": "PreviewImage",
-      "pos": [
-        1897,
-        755
-      ],
-      "size": {
-        "0": 473.607177734375,
-        "1": 267.42938232421875
-      },
-      "flags": {},
-      "order": 20,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 238
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "PreviewImage"
-      }
     },
     {
       "id": 10,
@@ -901,6 +265,638 @@
       "widgets_values": [
         "beautiful scenery nature glass bottle landscape, , purple galaxy bottle,"
       ]
+    },
+    {
+      "id": 26,
+      "type": "Reroute",
+      "pos": [
+        278,
+        799
+      ],
+      "size": [
+        90.4,
+        26
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 3320
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            155,
+            156
+          ],
+          "slot_index": 0,
+          "label": "Round1"
+        }
+      ],
+      "properties": {
+        "showOutputText": true,
+        "horizontal": false
+      }
+    },
+    {
+      "id": 19,
+      "type": "LatentFromBatch",
+      "pos": [
+        430,
+        821
+      ],
+      "size": {
+        "0": 210,
+        "1": 82
+      },
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 156
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            3261,
+            3272
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LatentFromBatch"
+      },
+      "widgets_values": [
+        1,
+        1
+      ]
+    },
+    {
+      "id": 17,
+      "type": "LatentFromBatch",
+      "pos": [
+        438,
+        694
+      ],
+      "size": {
+        "0": 210,
+        "1": 82
+      },
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 155
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            3260,
+            4802
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LatentFromBatch"
+      },
+      "widgets_values": [
+        0,
+        1
+      ]
+    },
+    {
+      "id": 25,
+      "type": "Reroute",
+      "pos": [
+        592,
+        1040
+      ],
+      "size": [
+        90.4,
+        26
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 3321
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            158,
+            159
+          ],
+          "slot_index": 0,
+          "label": "Round2"
+        }
+      ],
+      "properties": {
+        "showOutputText": true,
+        "horizontal": false
+      }
+    },
+    {
+      "id": 24,
+      "type": "LatentFromBatch",
+      "pos": [
+        740,
+        973
+      ],
+      "size": {
+        "0": 210,
+        "1": 82
+      },
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 158
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            4803
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LatentFromBatch"
+      },
+      "widgets_values": [
+        0,
+        1
+      ]
+    },
+    {
+      "id": 27,
+      "type": "LatentFromBatch",
+      "pos": [
+        743,
+        1104
+      ],
+      "size": {
+        "0": 210,
+        "1": 82
+      },
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 159,
+          "slot_index": 0
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            4806
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LatentFromBatch"
+      },
+      "widgets_values": [
+        1,
+        1
+      ]
+    },
+    {
+      "id": 135,
+      "type": "LatentBatch",
+      "pos": [
+        1273,
+        987
+      ],
+      "size": {
+        "0": 140,
+        "1": 46
+      },
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples1",
+          "type": "LATENT",
+          "link": 4807
+        },
+        {
+          "name": "samples2",
+          "type": "LATENT",
+          "link": 4806
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            4808
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LatentBatch"
+      }
+    },
+    {
+      "id": 134,
+      "type": "LatentBatch",
+      "pos": [
+        1110,
+        1164
+      ],
+      "size": {
+        "0": 140,
+        "1": 46
+      },
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples1",
+          "type": "LATENT",
+          "link": 4802
+        },
+        {
+          "name": "samples2",
+          "type": "LATENT",
+          "link": 4803
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            4807
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LatentBatch"
+      }
+    },
+    {
+      "id": 56,
+      "type": "KSamplerFABRIC",
+      "pos": [
+        668,
+        119
+      ],
+      "size": {
+        "0": 210,
+        "1": 606
+      },
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 3247
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 4795
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 4799
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 3250
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 3251
+        },
+        {
+          "name": "pos_latents",
+          "type": "LATENT",
+          "link": null
+        },
+        {
+          "name": "neg_latents",
+          "type": "LATENT",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            3253,
+            3320
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSamplerFABRIC"
+      },
+      "widgets_values": [
+        1,
+        "fixed",
+        10,
+        8,
+        "dpmpp_2m",
+        "karras",
+        1,
+        0.5,
+        0.25,
+        0.5
+      ]
+    },
+    {
+      "id": 57,
+      "type": "KSamplerFABRIC",
+      "pos": [
+        969,
+        435
+      ],
+      "size": {
+        "0": 210,
+        "1": 606
+      },
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 3254
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 4796
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 4800
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 3257
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 3258
+        },
+        {
+          "name": "pos_latents",
+          "type": "LATENT",
+          "link": 3260
+        },
+        {
+          "name": "neg_latents",
+          "type": "LATENT",
+          "link": 3261
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            3259,
+            3321
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSamplerFABRIC"
+      },
+      "widgets_values": [
+        1,
+        "fixed",
+        10,
+        8,
+        "dpmpp_2m",
+        "karras",
+        1,
+        0.5,
+        0.25,
+        0.5
+      ]
+    },
+    {
+      "id": 58,
+      "type": "KSamplerFABRIC",
+      "pos": [
+        1497,
+        752
+      ],
+      "size": {
+        "0": 210,
+        "1": 606
+      },
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 3262
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 4797
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 4801
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 3271
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 3266
+        },
+        {
+          "name": "pos_latents",
+          "type": "LATENT",
+          "link": 4808
+        },
+        {
+          "name": "neg_latents",
+          "type": "LATENT",
+          "link": 3272
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            3273
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSamplerFABRIC"
+      },
+      "widgets_values": [
+        1,
+        "fixed",
+        10,
+        8,
+        "dpmpp_2m",
+        "karras",
+        1,
+        0.5,
+        0.25,
+        0.5
+      ]
+    },
+    {
+      "id": 21,
+      "type": "PreviewImage",
+      "pos": [
+        1426,
+        426
+      ],
+      "size": {
+        "0": 464.48895263671875,
+        "1": 256.6249084472656
+      },
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 204
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      }
+    },
+    {
+      "id": 33,
+      "type": "PreviewImage",
+      "pos": [
+        1897,
+        755
+      ],
+      "size": {
+        "0": 473.607177734375,
+        "1": 267.42938232421875
+      },
+      "flags": {},
+      "order": 20,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 238
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      }
+    },
+    {
+      "id": 12,
+      "type": "PreviewImage",
+      "pos": [
+        1087,
+        124
+      ],
+      "size": {
+        "0": 413.17083740234375,
+        "1": 246
+      },
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 79
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      }
     },
     {
       "id": 3,
@@ -1021,38 +1017,6 @@
       "IMAGE"
     ],
     [
-      450,
-      17,
-      0,
-      31,
-      0,
-      "LATENT"
-    ],
-    [
-      469,
-      24,
-      0,
-      31,
-      1,
-      "LATENT"
-    ],
-    [
-      470,
-      31,
-      0,
-      34,
-      0,
-      "LATENT"
-    ],
-    [
-      471,
-      27,
-      0,
-      34,
-      1,
-      "LATENT"
-    ],
-    [
       3247,
       2,
       0,
@@ -1147,14 +1111,6 @@
       58,
       4,
       "CLIP"
-    ],
-    [
-      3270,
-      34,
-      0,
-      58,
-      5,
-      "LATENT"
     ],
     [
       3271,
@@ -1259,6 +1215,46 @@
       58,
       2,
       "CONDITIONING"
+    ],
+    [
+      4802,
+      17,
+      0,
+      134,
+      0,
+      "LATENT"
+    ],
+    [
+      4803,
+      24,
+      0,
+      134,
+      1,
+      "LATENT"
+    ],
+    [
+      4806,
+      27,
+      0,
+      135,
+      1,
+      "LATENT"
+    ],
+    [
+      4807,
+      134,
+      0,
+      135,
+      0,
+      "LATENT"
+    ],
+    [
+      4808,
+      135,
+      0,
+      58,
+      5,
+      "LATENT"
     ]
   ],
   "groups": [],

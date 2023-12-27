@@ -1,6 +1,6 @@
 {
-  "last_node_id": 135,
-  "last_link_id": 4816,
+  "last_node_id": 136,
+  "last_link_id": 4819,
   "nodes": [
     {
       "id": 80,
@@ -115,7 +115,7 @@
           "name": "LATENT",
           "type": "LATENT",
           "links": [
-            4546
+            4818
           ],
           "shape": 3,
           "slot_index": 0
@@ -123,48 +123,6 @@
       ],
       "properties": {
         "Node name for S&R": "VAEEncode"
-      }
-    },
-    {
-      "id": 133,
-      "type": "LatentBatch",
-      "pos": [
-        368,
-        416
-      ],
-      "size": {
-        "0": 140,
-        "1": 46
-      },
-      "flags": {},
-      "order": 10,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "latent1",
-          "type": "LATENT",
-          "link": 4546
-        },
-        {
-          "name": "latent2",
-          "type": "LATENT",
-          "link": 4547,
-          "slot_index": 1
-        }
-      ],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "links": [
-            4744
-          ],
-          "shape": 3,
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LatentBatch"
       }
     },
     {
@@ -199,7 +157,7 @@
           "name": "LATENT",
           "type": "LATENT",
           "links": [
-            4547
+            4817
           ],
           "shape": 3,
           "slot_index": 0
@@ -221,7 +179,7 @@
         "1": 106
       },
       "flags": {},
-      "order": 2,
+      "order": 1,
       "mode": 0,
       "outputs": [
         {
@@ -280,7 +238,7 @@
         "1": 98
       },
       "flags": {},
-      "order": 3,
+      "order": 2,
       "mode": 0,
       "outputs": [
         {
@@ -483,8 +441,8 @@
         160
       ],
       "size": [
-        270.26126617855584,
-        334
+        270.2612609863281,
+        546
       ],
       "flags": {},
       "order": 12,
@@ -548,10 +506,10 @@
         1168,
         160
       ],
-      "size": {
-        "0": 270.2612609863281,
-        "1": 334
-      },
+      "size": [
+        270.2612609863281,
+        546
+      ],
       "flags": {},
       "order": 13,
       "mode": 0,
@@ -635,7 +593,7 @@
         {
           "name": "pos_latents",
           "type": "LATENT",
-          "link": 4744
+          "link": 4819
         },
         {
           "name": "neg_latents",
@@ -675,7 +633,7 @@
         "1": 322.4206848144531
       },
       "flags": {},
-      "order": 1,
+      "order": 3,
       "mode": 0,
       "outputs": [
         {
@@ -701,6 +659,47 @@
         "ComfyUI_00027_.png",
         "image"
       ]
+    },
+    {
+      "id": 136,
+      "type": "LatentBatch",
+      "pos": [
+        379,
+        435
+      ],
+      "size": [
+        140,
+        46
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples1",
+          "type": "LATENT",
+          "link": 4818
+        },
+        {
+          "name": "samples2",
+          "type": "LATENT",
+          "link": 4817
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            4819
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LatentBatch"
+      }
     }
   ],
   "links": [
@@ -775,30 +774,6 @@
       132,
       0,
       "IMAGE"
-    ],
-    [
-      4546,
-      64,
-      0,
-      133,
-      0,
-      "LATENT"
-    ],
-    [
-      4547,
-      132,
-      0,
-      133,
-      1,
-      "LATENT"
-    ],
-    [
-      4744,
-      133,
-      0,
-      60,
-      2,
-      "LATENT"
     ],
     [
       4801,
@@ -895,6 +870,30 @@
       134,
       0,
       "MODEL"
+    ],
+    [
+      4817,
+      132,
+      0,
+      136,
+      1,
+      "LATENT"
+    ],
+    [
+      4818,
+      64,
+      0,
+      136,
+      0,
+      "LATENT"
+    ],
+    [
+      4819,
+      136,
+      0,
+      60,
+      2,
+      "LATENT"
     ]
   ],
   "groups": [],
